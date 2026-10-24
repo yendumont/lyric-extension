@@ -23,7 +23,7 @@ Ready-to-install files are in [`dist/`](dist/) (`*.spotiflac-ext`).
 
 ## Install
 
-1. Download the `.spotiflac-ext` file you want from `dist/` (or [Releases](../../releases)).
+1. Download the `.spotiflac-ext` file you want from `dist/`.
 2. In Mornye, install it from the Extensions page.
 3. For Spicy Lyrics, paste your free key from <https://developers.spicylyrics.org> into the extension's settings.
 4. In **Settings > Lyrics > Lyrics providers**, switch the extension on and move it to the top.
