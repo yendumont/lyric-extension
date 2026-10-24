@@ -60,8 +60,7 @@ zip -X ../../dist/spicy-lyrics-desktop_1.0.4.spotiflac-ext manifest.json index.j
 
 ## Credits and terms
 
-- Based on community **Spicy Lyrics** and **Unison** extensions for SpotiFLAC Mobile. The original author and licence are
-  not known to the maintainer of this repository; if you wrote them, please open an issue so credit can be added.
+- Based on my prior **Spicy Lyrics** and **Unison** extensions for SpotiFLAC Mobile.
 - **Spicy Lyrics** lyrics come from [developers.spicylyrics.org](https://developers.spicylyrics.org) with your own key, and its
   [attribution rules](https://developers.spicylyrics.org/docs/attribution) apply. The provider name shown in Mornye carries the credit.
 - **Unison** lyrics come from <https://unison.boidu.dev> ([Better Lyrics](https://github.com/better-lyrics/unison), ODbL, attribution required).
