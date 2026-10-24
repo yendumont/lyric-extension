@@ -68,8 +68,3 @@ zip -X ../../dist/spicy-lyrics-desktop_1.0.4.spotiflac-ext manifest.json index.j
 - The idea of reading Spotify through its debug port, and the search call used, come from
   [yendumont/lyric-viewer](https://github.com/yendumont/lyric-viewer) (AGPL-3.0). The helper here is separately written.
 - Not affiliated with Mornye, Spotify, Spicy Lyrics or Unison.
-
-## Licence
-
-No licence has been chosen yet. Until one is added, all rights are reserved by default. Choose one before sharing widely, and check the
-original extensions' terms for the parts they cover.
