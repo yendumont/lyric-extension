@@ -1,0 +1,10 @@
+# Editors / OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Never commit keys
+config.json
+*.key
+.env

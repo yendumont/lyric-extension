@@ -1,0 +1,54 @@
+{
+  "name": "unison-lyrics",
+  "displayName": "Unison Lyrics",
+  "version": "1.1.5",
+  "description": "Crowdsourced line- and word-synced lyrics from Unison (unison.boidu.dev), the Better Lyrics community database.",
+  "author": "Community",
+  "homepage": "https://unison.boidu.dev",
+  "permissions": {
+    "network": [
+      "unison.boidu.dev"
+    ],
+    "storage": true
+  },
+  "type": [
+    "lyrics_provider"
+  ],
+  "settings": [
+    {
+      "key": "durationTolerance",
+      "label": "Prefer exact duration",
+      "type": "boolean",
+      "description": "Send the track duration so Unison only returns entries within about 2 seconds of it.",
+      "default": true
+    },
+    {
+      "key": "backgroundVocals",
+      "label": "Show background vocals as separate lines",
+      "type": "boolean",
+      "description": "Shows backing vocals as a small line under the main lyric. Turn off to hide them.",
+      "default": true
+    },
+    {
+      "key": "timingOffsetMs",
+      "label": "Timing offset (ms)",
+      "type": "string",
+      "description": "Shift all lyric timing. Negative = earlier (e.g. -300 if lyrics show late), positive = later. Default 0.",
+      "default": "0"
+    },
+    {
+      "key": "voiceAlignment",
+      "label": "Alternate sides for duets",
+      "type": "boolean",
+      "description": "When a song has more than one singer, show the second singer's lines on the right.",
+      "default": true
+    },
+    {
+      "key": "wordSync",
+      "label": "Word-by-word timing",
+      "type": "boolean",
+      "description": "On: words highlight one by one. Off: whole-line sync only. Turn off to check whether a sync problem comes from word timing.",
+      "default": true
+    }
+  ]
+}
