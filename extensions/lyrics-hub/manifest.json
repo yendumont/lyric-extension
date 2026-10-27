@@ -1,0 +1,330 @@
+{
+  "name": "lyrics-hub",
+  "displayName": "Lyrics Hub",
+  "version": "1.1.1",
+  "description": "One lyrics provider for all the sources the Lyric Viewer uses: Spicy Lyrics, lrc.red, AMLL, BiniLyrics, Musixmatch, Unison, LRCLIB, LRCMux, NetEase, QQ Music, KuGou, Kuwo, Deezer, and (desktop, through the helper) YouTube Music and Genius. Keeps the best-synced result, can translate lyrics (line or word by word), and works on mobile and desktop.",
+  "author": "Community",
+  "homepage": "https://github.com/yendumont/lyric-viewer",
+  "permissions": {
+    "network": [
+      "api.spicylyrics.org",
+      "lrclib.net",
+      "unison.boidu.dev",
+      "lrc.red",
+      "lyrics-api.binimum.org",
+      "raw.githubusercontent.com",
+      "music.163.com",
+      "u.y.qq.com",
+      "lyrics.kugou.com",
+      "www.kuwo.cn",
+      "api.deezer.com",
+      "auth.deezer.com",
+      "pipe.deezer.com",
+      "apic-desktop.musixmatch.com",
+      "api.lrcmux.dev",
+      "generativelanguage.googleapis.com",
+      "labs.api.listenbrainz.org",
+      "itunes.apple.com",
+      "api.unitune.art",
+      "api.song.link",
+      "accounts.spotify.com",
+      "api.spotify.com",
+      "127.0.0.1"
+    ],
+    "storage": true,
+    "allowHttp": true
+  },
+  "type": [
+    "lyrics_provider"
+  ],
+  "settings": [
+    {
+      "key": "preferBestSync",
+      "label": "[General] Prefer best sync",
+      "type": "boolean",
+      "description": "On: ask your sources in order, but keep going until word-by-word timing turns up (the best result wins). Off: the first source in your order that has synced lyrics is used and nothing after it is asked.",
+      "default": true
+    },
+    {
+      "key": "providerOrder",
+      "label": "[General] Source order",
+      "type": "string",
+      "description": "First asked first. Separate with commas, > or new lines; ids or names both work: spicy, lrcred, amll, binilyrics, musixmatch, unison, lrclib, lrcmux, netease, qqmusic, kugou, kuwo, deezer, ytmusic, genius. Sources you leave out follow in the default order (ytmusic and genius last: plain text only). Switched-off sources are skipped. The last lookup (Tools) shows the order that was used."
+    },
+    {
+      "key": "allowPlainFallback",
+      "label": "[General] Accept unsynced lyrics",
+      "type": "boolean",
+      "description": "If no source has timed lyrics, return plain text instead of nothing.",
+      "default": true
+    },
+    {
+      "key": "wordTiming",
+      "label": "[General] Word-by-word timing",
+      "type": "boolean",
+      "description": "On: words highlight one by one where a source has word timing. Off: whole-line sync only.",
+      "default": true
+    },
+    {
+      "key": "backgroundVocals",
+      "label": "[General] Show background vocals",
+      "type": "boolean",
+      "description": "Shows backing vocals as a small line under the main lyric.",
+      "default": true
+    },
+    {
+      "key": "voiceAlignment",
+      "label": "[General] Alternate sides for duets",
+      "type": "boolean",
+      "description": "When a song has more than one singer, show the second singer's lines on the right.",
+      "default": true
+    },
+    {
+      "key": "timingOffsetMs",
+      "label": "[General] Timing offset (ms)",
+      "type": "string",
+      "description": "Shift all lyric timing. Negative = earlier (e.g. -300 if lyrics show late), positive = later. Default 0.",
+      "default": "0"
+    },
+    {
+      "key": "timeBudgetSec",
+      "label": "[General] Search time limit (seconds)",
+      "type": "string",
+      "description": "Stop asking more sources after this long (the app gives an extension about 30 seconds in all). Default 22.",
+      "default": "22"
+    },
+    {
+      "key": "use_spicy",
+      "label": "[Sources] Spicy Lyrics",
+      "type": "boolean",
+      "description": "Ask Spicy Lyrics. Needs your Spicy Lyrics key (below).",
+      "default": true
+    },
+    {
+      "key": "use_lrcred",
+      "label": "[Sources] lrc.red",
+      "type": "boolean",
+      "description": "Ask lrc.red. Free. Word-timed and line-timed lyrics by ISRC.",
+      "default": true
+    },
+    {
+      "key": "use_amll",
+      "label": "[Sources] AMLL TTML DB",
+      "type": "boolean",
+      "description": "Ask AMLL TTML DB. Free. Community word-timed lyrics.",
+      "default": true
+    },
+    {
+      "key": "use_binilyrics",
+      "label": "[Sources] BiniLyrics",
+      "type": "boolean",
+      "description": "Ask BiniLyrics. Free. Mostly lrc.red lyrics, follows the lrc.red word sync option.",
+      "default": true
+    },
+    {
+      "key": "use_musixmatch",
+      "label": "[Sources] Musixmatch",
+      "type": "boolean",
+      "description": "Ask Musixmatch. Needs your own user token (below).",
+      "default": true
+    },
+    {
+      "key": "use_unison",
+      "label": "[Sources] Unison",
+      "type": "boolean",
+      "description": "Ask Unison. Free. Community lyrics (ODbL, attribution shown).",
+      "default": true
+    },
+    {
+      "key": "use_lrclib",
+      "label": "[Sources] LRCLIB",
+      "type": "boolean",
+      "description": "Ask LRCLIB. Free. Line-timed lyrics, some with word timing.",
+      "default": true
+    },
+    {
+      "key": "use_lrcmux",
+      "label": "[Sources] LRCMux",
+      "type": "boolean",
+      "description": "Ask LRCMux. Free. Gathers KuGou, LRCLIB and more; word-timed when it can.",
+      "default": true
+    },
+    {
+      "key": "use_netease",
+      "label": "[Sources] NetEase",
+      "type": "boolean",
+      "description": "Ask NetEase. Free. Word-timed (YRC) or line-timed.",
+      "default": true
+    },
+    {
+      "key": "use_qqmusic",
+      "label": "[Sources] QQ Music",
+      "type": "boolean",
+      "description": "Ask QQ Music. Free. Line-timed.",
+      "default": true
+    },
+    {
+      "key": "use_kugou",
+      "label": "[Sources] KuGou",
+      "type": "boolean",
+      "description": "Ask KuGou. Free. Word-timed (KRC) or line-timed.",
+      "default": true
+    },
+    {
+      "key": "use_kuwo",
+      "label": "[Sources] Kuwo",
+      "type": "boolean",
+      "description": "Ask Kuwo. Free. Line-timed.",
+      "default": true
+    },
+    {
+      "key": "use_deezer",
+      "label": "[Sources] Deezer",
+      "type": "boolean",
+      "description": "Ask Deezer. Free. Line-timed or plain.",
+      "default": true
+    },
+    {
+      "key": "lrcRedWordSync",
+      "label": "[Sources] lrc.red / BiniLyrics word sync",
+      "type": "select",
+      "description": "hand = keep word timing only for songs a person timed (lrc.red's own model timings are shown as plain lines, as they are often off); all = always keep word timing; off = line sync only.",
+      "default": "hand",
+      "options": [
+        "hand",
+        "all",
+        "off"
+      ]
+    },
+    {
+      "key": "use_ytmusic",
+      "label": "[Desktop only] YouTube Music",
+      "type": "boolean",
+      "description": "Ask YouTube Music (plain text lyrics). Needs the desktop helper (lyrics-bridge) running; skipped on a phone.",
+      "default": true
+    },
+    {
+      "key": "use_genius",
+      "label": "[Desktop only] Genius",
+      "type": "boolean",
+      "description": "Ask Genius (plain text lyrics, last resort). Needs the desktop helper (lyrics-bridge) running; skipped on a phone.",
+      "default": true
+    },
+    {
+      "key": "geniusFavoriteArtists",
+      "label": "[Desktop only] Genius favourite artists",
+      "type": "string",
+      "description": "Real artists whose songs are listed on Spotify under a different (uploader) name, comma-separated, e.g. jaydes, someone else. Genius is searched for them by name.",
+      "default": ""
+    },
+    {
+      "key": "geniusLooseSearch",
+      "label": "[Desktop only] Genius loose search",
+      "type": "boolean",
+      "description": "When the exact song and artist are not found on Genius, try broader searches (other word orders, the album, symbol-free artist names).",
+      "default": true
+    },
+    {
+      "key": "geniusEagerMatch",
+      "label": "[Desktop only] Genius best guess",
+      "type": "boolean",
+      "description": "As a last resort show the best-looking Genius result even though nothing proved it is the right song (obscure results preferred over famous ones).",
+      "default": true
+    },
+    {
+      "key": "useSpotifyApp",
+      "label": "[Desktop only] Find songs through the Spotify app",
+      "type": "boolean",
+      "description": "Asks your running Spotify app (with Spicetify's debug port open), through the desktop helper, for the song's ID. Desktop only; skipped automatically on a phone. Needs 'Allow Local Network Access' (Settings > Download).",
+      "default": true
+    },
+    {
+      "key": "bridgePort",
+      "label": "[Desktop only] Helper port",
+      "type": "string",
+      "description": "Port of the lyrics-bridge helper. Default 8089.",
+      "default": "8089"
+    },
+    {
+      "key": "spicyKey",
+      "label": "[Keys] Spicy Lyrics API key",
+      "type": "string",
+      "description": "Your application's publishable key (sl_pk_...). developers.spicylyrics.org > Dashboard > Applications > your app > turn on client access, add 'No origin header', then copy the sl_pk_ key.",
+      "secret": true
+    },
+    {
+      "key": "musixmatchToken",
+      "label": "[Keys] Musixmatch user token",
+      "type": "string",
+      "description": "Your own Musixmatch token. Without one Musixmatch is skipped.",
+      "secret": true
+    },
+    {
+      "key": "spotifyClientId",
+      "label": "[Keys] Spotify Client ID (optional)",
+      "type": "string",
+      "description": "Optional. Only for Spotify search instead of the key-free lookup that finds the Spotify ID for Spicy Lyrics, Musixmatch and AMLL."
+    },
+    {
+      "key": "spotifyClientSecret",
+      "label": "[Keys] Spotify Client Secret (optional)",
+      "type": "string",
+      "description": "Optional, see above.",
+      "secret": true
+    },
+    {
+      "key": "translationMode",
+      "label": "[Translation] Translate lyrics",
+      "type": "select",
+      "description": "off = none. line = a translated line under each lyric. word = a translation that lights up word by word (the app shows it in its word-synced 'pronunciation' slot, switch it on with the app's lyrics language button). Needs a Gemini key.",
+      "default": "off",
+      "options": [
+        "off",
+        "line",
+        "word"
+      ]
+    },
+    {
+      "key": "translateTo",
+      "label": "[Translation] Translate into",
+      "type": "string",
+      "description": "The language to translate into, e.g. English, Spanish, Japanese.",
+      "default": "English"
+    },
+    {
+      "key": "geminiApiKey",
+      "label": "[Translation] Gemini API key",
+      "type": "string",
+      "description": "Your own key from aistudio.google.com. Lyrics are sent to Google's Gemini API with it, and nowhere else.",
+      "secret": true
+    },
+    {
+      "key": "geminiModel",
+      "label": "[Translation] Gemini model",
+      "type": "string",
+      "description": "Default gemini-3.5-flash-lite.",
+      "default": "gemini-3.5-flash-lite"
+    },
+    {
+      "key": "test_button",
+      "label": "[Tools] Test connection",
+      "type": "button",
+      "description": "Checks the sources that are switched on, the Spotify lookup / Spicy key, the desktop helper and Gemini, and tells you which step fails.",
+      "action": "testConnection"
+    },
+    {
+      "key": "lastLookupButton",
+      "label": "[Tools] Show last lookup",
+      "type": "button",
+      "description": "Shows what each source answered the last time the app asked for lyrics.",
+      "action": "lastLookup"
+    },
+    {
+      "key": "clearToken",
+      "label": "[Tools] Reset Spotify token cache",
+      "type": "button",
+      "description": "Use after changing the Spotify credentials.",
+      "action": "resetToken"
+    }
+  ]
+}
