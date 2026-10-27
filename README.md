@@ -85,18 +85,14 @@ zip -X ../../dist/spicy-lyrics-desktop_1.0.4.spotiflac-ext manifest.json index.j
 
 ## Credits and terms
 
-<<<<<<< HEAD
 =======
 - Based on my prior **Spicy Lyrics** and **Unison** extensions for SpotiFLAC Mobile.
->>>>>>> b2039cf08e637b0b12b931c34808739e2a7888b3
 - **Spicy Lyrics** lyrics come from [developers.spicylyrics.org](https://developers.spicylyrics.org) with your own key, and its
   [attribution rules](https://developers.spicylyrics.org/docs/attribution) apply. The provider name shown in Mornye carries the credit.
 - **Unison** lyrics come from <https://unison.boidu.dev> ([Better Lyrics](https://github.com/better-lyrics/unison), ODbL, attribution required).
 - The idea of reading Spotify through its debug port, and the search call used, come from
-<<<<<<< HEAD
   [yendumont/lyric-viewer](https://github.com/yendumont/lyric-viewer) (AGPL-3.0).
 - Not affiliated with Mornye, Spotify, Spicy Lyrics or Unison etc.
 =======
-  [yendumont/lyric-viewer](https://github.com/yendumont/lyric-viewer) (AGPL-3.0). The helper here is separately written.
-- Not affiliated with Mornye, Spotify, Spicy Lyrics or Unison.
->>>>>>> b2039cf08e637b0b12b931c34808739e2a7888b3
+  [yendumont/lyric-viewer](https://github.com/yendumont/lyric-viewer) (AGPL-3.0).
+- Not affiliated with Mornye, Spotify, Spicy Lyrics or Unison etc.
