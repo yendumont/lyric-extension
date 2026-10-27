@@ -85,7 +85,6 @@ zip -X ../../dist/spicy-lyrics-desktop_1.0.4.spotiflac-ext manifest.json index.j
 
 ## Credits and terms
 
-=======
 - Based on my prior **Spicy Lyrics** and **Unison** extensions for SpotiFLAC Mobile.
 - **Spicy Lyrics** lyrics come from [developers.spicylyrics.org](https://developers.spicylyrics.org) with your own key, and its
   [attribution rules](https://developers.spicylyrics.org/docs/attribution) apply. The provider name shown in Mornye carries the credit.
