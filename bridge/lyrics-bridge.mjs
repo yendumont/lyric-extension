@@ -1,4 +1,4 @@
-// Lyrics Hub bridge for the "Lyrics Hub" (and "Spicy Lyrics (Desktop)") Mornye extensions. (v2.0)
+// Lyrics Hub bridge for the "Lyrics Hub" (and "Spicy Lyrics (Desktop)") Mornye extensions. (v2.2)
 //
 // Mornye extensions can only make plain, header-limited HTTP requests. This small helper, running on
 // your PC at http://127.0.0.1:8089, does the things they can't:
@@ -13,13 +13,20 @@
 //   node lyrics-bridge.mjs
 //   node lyrics-bridge.mjs --cdp 8088 --port 8089
 //
-// Safety: it only listens on 127.0.0.1, answers only GET requests for the routes above, and refuses any
+// Safety: by default it only listens on 127.0.0.1, answers only GET requests for the routes above, and refuses any
 // request that carries an Origin header (so web pages in your browser can't use it).
+// Server mode (for phones, on a PC or server that stays on):
+//   node lyrics-bridge.mjs --host 0.0.0.0 --token <secret>      (make a secret: node lyrics-bridge.mjs --make-token)
+// Every request must then carry the token in an X-Bridge-Token header; it refuses to start without one.
+//   node lyrics-bridge.mjs --init      writes a .env for server mode with a new token and prints what to enter in Mornye
 
 import http from "node:http";
+import crypto from "node:crypto";
+import fs from "node:fs";
+import os from "node:os";
 import { pathToFileURL } from "node:url";
 
-const VERSION = "2.0";
+const VERSION = "2.2";
 const SOURCES = ["genius", "ytm"]; // what this helper can fetch besides the Spotify lookup
 const IS_MAIN = !!process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 
@@ -27,7 +34,40 @@ const arg = (name, fallback) => {
   const i = process.argv.indexOf("--" + name);
   return i !== -1 && process.argv[i + 1] ? process.argv[i + 1] : fallback;
 };
+// Settings can also live in a ".env" file next to this script (BRIDGE_HOST=, BRIDGE_PORT=, BRIDGE_TOKEN=).
+if (IS_MAIN) { try { process.loadEnvFile(new URL(".env", import.meta.url)); } catch { /* no .env file */ } }
+// This machine's addresses other devices can use (LAN and Tailscale), for printing.
+const addresses = () => Object.values(os.networkInterfaces()).flat().filter((a) => a && a.family === "IPv4" && !a.internal).map((a) => a.address);
+// --init: write a ".env" for server mode (listen for other devices, with a new token) unless one exists, and say what to enter in Mornye.
+if (IS_MAIN && process.argv.includes("--init")) {
+  const file = new URL(".env", import.meta.url);
+  const port = Number(arg("port", 8089));
+  let created = true;
+  try {
+    fs.writeFileSync(file, `BRIDGE_HOST=0.0.0.0\nBRIDGE_PORT=${port}\nBRIDGE_TOKEN=${crypto.randomBytes(24).toString("base64url")}\n`, { flag: "wx", mode: 0o600 });
+  } catch (e) {
+    if (e.code !== "EEXIST") throw e;
+    created = false;
+  }
+  const env = Object.fromEntries(fs.readFileSync(file, "utf8").split(/\r?\n/).map((l) => l.match(/^\s*([A-Z_]+)\s*=\s*(.*?)\s*$/)).filter(Boolean).map((m) => [m[1], m[2]]));
+  console.log(created ? "Created .env (keep it private: it holds the token)." : "Using the existing .env.");
+  console.log("\nIn Mornye > Lyrics Hub settings enter:");
+  console.log("  Helper address:  your Tailscale name (laptop.tailXXXX.ts.net) or your laptop.local name" + (env.BRIDGE_PORT && env.BRIDGE_PORT !== "8089" ? ", plus :" + env.BRIDGE_PORT : ""));
+  console.log("                   (a bare IP such as " + (addresses()[0] || "192.168.1.50") + " is not allowed by the normal extension; see server/SERVER.txt)");
+  console.log("  Helper token:    " + env.BRIDGE_TOKEN);
+  process.exit(0);
+}
+if (IS_MAIN && process.argv.includes("--make-token")) {
+  console.log(crypto.randomBytes(24).toString("base64url"));
+  process.exit(0);
+}
+
 const PORT = Number(arg("port", process.env.BRIDGE_PORT || 8089));
+// Server mode: --host 0.0.0.0 (or this machine's address) lets other devices (phones) use the helper. That needs a token,
+// which every request must send in an X-Bridge-Token header. Without --host it stays on this PC only, as before.
+const HOST = String(arg("host", process.env.BRIDGE_HOST || "127.0.0.1"));
+const TOKEN = String(arg("token", process.env.BRIDGE_TOKEN || ""));
+const LOOPBACK = ["127.0.0.1", "localhost", "::1"].includes(HOST);
 const CDP_PORTS = [arg("cdp", process.env.SPOTIFY_DEBUG_PORT || 8088), 9222]
   .map(Number)
   .filter((p, i, a) => p > 0 && a.indexOf(p) === i);
@@ -642,9 +682,30 @@ const send = (res, status, body) => {
   res.end(JSON.stringify(body));
 };
 
+// Wrong tokens: after 10 in a minute from one address, that address waits.
+const misses = new Map();
+const tokenOk = (given) => {
+  const a = crypto.createHash("sha256").update(String(given || "")).digest();
+  const b = crypto.createHash("sha256").update(TOKEN).digest();
+  return crypto.timingSafeEqual(a, b);
+};
+
 export const server = http.createServer(async (req, res) => {
-  const hostOk = [`127.0.0.1:${PORT}`, `localhost:${PORT}`].includes(String(req.headers.host || "").toLowerCase());
-  if (!hostOk || req.headers.origin) return send(res, 403, { error: "forbidden" });
+  if (req.headers.origin) return send(res, 403, { error: "forbidden" });
+  if (TOKEN) {
+    // Server mode: the token is the lock (a web page can't send it), so any Host name or address is fine.
+    const who = req.socket.remoteAddress || "?";
+    const m = misses.get(who);
+    if (m && m.count >= 10 && Date.now() - m.first < 60000) return send(res, 429, { error: "too many wrong tokens, wait a minute" });
+    if (!tokenOk(req.headers["x-bridge-token"])) {
+      const now = Date.now();
+      misses.set(who, m && now - m.first < 60000 ? { first: m.first, count: m.count + 1 } : { first: now, count: 1 });
+      return send(res, 401, { error: "missing or wrong token" });
+    }
+  } else {
+    const hostOk = [`127.0.0.1:${PORT}`, `localhost:${PORT}`].includes(String(req.headers.host || "").toLowerCase());
+    if (!hostOk) return send(res, 403, { error: "forbidden" });
+  }
   if (req.method !== "GET") return send(res, 405, { error: "GET only" });
 
   const url = new URL(req.url, `http://127.0.0.1:${PORT}`);
@@ -690,14 +751,24 @@ if (IS_MAIN) server.on("error", (e) => {
   console.error(e.code === "EADDRINUSE" ? `Port ${PORT} is already in use. Is the helper already running? (or use --port 8090)` : e.message);
   process.exit(1);
 });
-if (IS_MAIN) server.listen(PORT, "127.0.0.1", async () => {
-  console.log(`Lyrics Hub bridge listening on http://127.0.0.1:${PORT}  (Spotify debug port: ${CDP_PORTS.join(" or ")})`);
+if (IS_MAIN && !LOOPBACK && TOKEN.length < 16) {
+  console.error("Server mode (--host " + HOST + ") needs a token of at least 16 characters: --token <secret> or BRIDGE_TOKEN in .env.");
+  console.error("Make one with:  node lyrics-bridge.mjs --make-token");
+  process.exit(1);
+}
+if (IS_MAIN) server.listen(PORT, HOST, async () => {
+  console.log(`Lyrics Hub bridge ${VERSION} listening on http://${HOST}:${PORT}${TOKEN ? "  (token required)" : ""}  (Spotify debug port: ${CDP_PORTS.join(" or ")})`);
+  if (!LOOPBACK) {
+    console.log("Other devices can reach it at: " + addresses().map((a) => `http://${a}:${PORT}`).join("  "));
+    console.log("In Lyrics Hub, Helper address must be a name the extension allows: your Tailscale name (*.ts.net, best), a *.local name, or");
+    console.log("  " + addresses().map((a) => a.replace(/\./g, "-") + ".sslip.io").join("  ") + "   (public DNS trick, less safe: see server/SERVER.txt)");
+  }
   console.log("Leave this window open while downloading. Press Ctrl+C to stop.");
   try {
     await findPage();
     console.log("Spotify check: connected to the Spotify app. Ready.");
   } catch (e) {
-    console.log("Spotify check: NOT connected -> " + e.message);
-    console.log("(The helper keeps running and retries on every request.)");
+    console.log("Spotify check: not connected (" + e.message.split("\n")[0].slice(0, 120) + "). Fine for Genius and YouTube Music.");
+    console.log("(The helper keeps running and tries Spotify again on every lookup.)");
   }
 });

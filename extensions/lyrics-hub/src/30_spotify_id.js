@@ -195,10 +195,24 @@ function resolveViaDeezer(track, artist, durationSec) {
 }
 
 // ---- Spotify app lookup via the local helper (spotify-bridge.mjs) ----
+// Where the helper is. Empty "Helper address" = this PC (127.0.0.1). Otherwise a name or IP, with or without :port or http(s)://,
+// for a helper that runs on another machine that stays on (server mode, with a token).
 function bridgeBase() {
   var port = parseInt(settings.bridgePort, 10);
   if (!port || port < 1 || port > 65535) port = 8089;
-  return "http://127.0.0.1:" + port;
+  var host = str("bridgeHost").replace(/\s+/g, "");
+  if (!host) return "http://127.0.0.1:" + port;
+  if (/^https?:\/\//i.test(host)) return host.replace(/\/+$/, "");
+  host = host.replace(/\/+$/, "");
+  return "http://" + host + (/:\d+$/.test(host) ? "" : ":" + port);
+}
+
+// Headers for every call to the helper: the token (server mode) goes in X-Bridge-Token.
+function bridgeHeaders() {
+  var h = { "Accept": "application/json" };
+  var token = str("bridgeToken");
+  if (token) h["X-Bridge-Token"] = token;
+  return h;
 }
 
 function resolveViaBridge(track, artist, durationSec) {
@@ -207,10 +221,12 @@ function resolveViaBridge(track, artist, durationSec) {
     (durationSec > 0 ? "&duration=" + Math.round(durationSec) : "");
   var resp;
   try {
-    resp = http.get(url, { "Accept": "application/json" });
+    resp = http.get(url, bridgeHeaders());
   } catch (e) {
     return { error: "helper not reachable (" + String(e).slice(0, 120) + ")" };
   }
+  if (resp.error || resp.statusCode === undefined) return { error: "helper not reachable at " + bridgeBase() + " (" + String(resp.error || "no answer").slice(0, 160) + ")" };
+  if (resp.statusCode === 401) return { error: "the helper refused the token (check Helper token)" };
   if (resp.statusCode === 429) return { error: "Spotify is rate-limiting searches (the helper is waiting it out)" };
   if (resp.statusCode === 404) {
     var why = "";
@@ -230,11 +246,13 @@ function resolveViaBridge(track, artist, durationSec) {
 
 function bridgeHealth() {
   try {
-    var resp = http.get(bridgeBase() + "/health", { "Accept": "application/json" });
+    var resp = http.get(bridgeBase() + "/health", bridgeHeaders());
+    if (resp.error || resp.statusCode === undefined) return { ok: false, text: "helper not reachable at " + bridgeBase() + " (" + String(resp.error || "no answer").slice(0, 160) + ")" };
+    if (resp.statusCode === 401) return { ok: false, text: "helper refused the token (check Helper token)" };
     if (!resp.ok) return { ok: false, text: "helper HTTP " + resp.statusCode };
     var d = JSON.parse(resp.body);
     var extra = d.sources && d.sources.length ? "; Genius/YouTube Music " + (d.sources.indexOf("genius") !== -1 ? "available" : "missing") : "; old helper, update to lyrics-bridge 2.0 for Genius/YouTube Music";
-    return { ok: !!d.spotify, text: (d.spotify ? "helper OK, Spotify app connected" : "helper running but Spotify app not reachable: " + (d.reason || "unknown")) + extra };
+    return { ok: !!d.spotify, text: (d.spotify ? "helper OK, Spotify app connected" : "helper OK at " + bridgeBase() + ", Spotify app not connected there (only the Spotify lookup needs it)") + extra };
   } catch (e) {
     return { ok: false, text: "helper not reachable (" + String(e).slice(0, 120) + ")" };
   }

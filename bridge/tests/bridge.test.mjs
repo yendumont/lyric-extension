@@ -106,10 +106,73 @@ await test("server: upstream failure is a 502, missing lyrics a 404, health list
   bridge.upstream.fetch = async () => mkres(200, "<html>no lyrics</html>");
   assert.equal((await get("/genius/lyrics?path=/A-b-lyrics")).status, 404);
   const h = JSON.parse((await get("/health")).body);
-  assert.equal(h.version, "2.0");
+  assert.equal(h.version, "2.2");
   assert.deepEqual(h.sources, ["genius", "ytm"]);
 });
 
 bridge.server.close();
+
+// ---- server mode ----
+{
+  const { spawn } = await import("node:child_process");
+  const run = (args, env = {}) => new Promise((resolve) => {
+    const p = spawn("node", ["lyrics-bridge.mjs", ...args], { cwd: new URL("..", import.meta.url).pathname, env: { ...process.env, ...env } });
+    let out = ""; p.stdout.on("data", (d) => (out += d)); p.stderr.on("data", (d) => (out += d));
+    resolve({ p, out: () => out });
+  });
+  const req = (port, headers = {}, path = "/health") => new Promise((resolve, reject) => {
+    http.get({ host: "127.0.0.1", port, path, headers }, (r) => { let b = ""; r.on("data", (d) => (b += d)); r.on("end", () => resolve({ status: r.statusCode, body: b })); }).on("error", reject);
+  });
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  await test("server mode refuses to start without a good token", async () => {
+    const { p, out } = await run(["--host", "0.0.0.0", "--port", "18091"]);
+    await wait(600);
+    assert.ok(/needs a token/.test(out()), out());
+    p.kill();
+  });
+  await test("server mode: token required, any Host accepted, Origin refused, repeated misses are throttled", async () => {
+    const TOKEN = "t".repeat(20);
+    const { p } = await run(["--host", "127.0.0.1", "--port", "18092", "--token", TOKEN]);
+    await wait(700);
+    assert.equal((await req(18092)).status, 401);
+    assert.equal((await req(18092, { "x-bridge-token": "wrong" })).status, 401);
+    const ok = await req(18092, { "x-bridge-token": TOKEN, host: "192.168.1.50:18092" });
+    assert.equal(ok.status, 200);
+    assert.ok(JSON.parse(ok.body).sources.includes("genius"));
+    assert.equal((await req(18092, { "x-bridge-token": TOKEN, origin: "http://evil.example" })).status, 403);
+    for (let i = 0; i < 10; i++) await req(18092, { "x-bridge-token": "bad" + i });
+    assert.equal((await req(18092, { "x-bridge-token": TOKEN })).status, 429);
+    p.kill();
+  });
+  await test("default mode is unchanged: localhost only, no token", async () => {
+    const { p } = await run(["--port", "18093"]);
+    await wait(700);
+    assert.equal((await req(18093, { host: "127.0.0.1:18093" })).status, 200);
+    assert.equal((await req(18093, { host: "evil.example:18093" })).status, 403);
+    p.kill();
+  });
+  await test("--init writes a private .env once, keeps it on a second run, and the server then starts from it", async () => {
+    const { mkdtempSync, copyFileSync, readFileSync } = await import("node:fs");
+    const { spawnSync } = await import("node:child_process");
+    const { tmpdir } = await import("node:os");
+    const dir = mkdtempSync(tmpdir() + "/bridge-init-");
+    copyFileSync(new URL("../lyrics-bridge.mjs", import.meta.url), dir + "/lyrics-bridge.mjs");
+    const a = spawnSync(process.execPath, [dir + "/lyrics-bridge.mjs", "--init"], { encoding: "utf8" });
+    assert.ok(/Created \.env/.test(a.stdout), a.stdout + a.stderr);
+    const env1 = readFileSync(dir + "/.env", "utf8");
+    assert.ok(/BRIDGE_HOST=0\.0\.0\.0/.test(env1) && /BRIDGE_TOKEN=[A-Za-z0-9_-]{30,}/.test(env1), env1);
+    const token = /BRIDGE_TOKEN=(\S+)/.exec(env1)[1];
+    assert.ok(a.stdout.includes(token), "token printed for Mornye");
+    const b = spawnSync(process.execPath, [dir + "/lyrics-bridge.mjs", "--init"], { encoding: "utf8" });
+    assert.ok(/existing \.env/.test(b.stdout));
+    assert.equal(readFileSync(dir + "/.env", "utf8"), env1, "token kept");
+  });
+  await test("--make-token prints a long random token", async () => {
+    const { out } = await run(["--make-token"]);
+    await wait(500);
+    assert.ok(/^[A-Za-z0-9_-]{30,}\s*$/.test(out()), out());
+  });
+}
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

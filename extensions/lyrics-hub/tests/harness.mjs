@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const SOURCE = (process.env.HUB_STRICT ? "\"use strict\";\n" : "") + fs.readFileSync(path.join(here, "../ext/index.js"), "utf8");
+const SOURCE = (process.env.HUB_STRICT ? "\"use strict\";\n" : "") + fs.readFileSync(path.join(here, "../index.js"), "utf8");
 
 // A fake of the app's extension sandbox: sync http with a route table, in-memory storage.
 export function load(settings = {}, routes = [], opts = {}) {

@@ -6,7 +6,7 @@ function bridgeGet(path, t) {
   if (t && t.bridgeDown) throw new Error("desktop helper not reachable (skipped)");
   var r;
   try {
-    r = http.get(bridgeBase() + path, { "Accept": "application/json" });
+    r = http.get(bridgeBase() + path, bridgeHeaders());
   } catch (e) {
     if (t) t.bridgeDown = true;
     throw new Error("desktop helper not reachable (" + String(e).slice(0, 80) + ")");
@@ -15,6 +15,7 @@ function bridgeGet(path, t) {
     if (t) t.bridgeDown = true;
     throw new Error("desktop helper not reachable (" + String(r.error).slice(0, 80) + ")");
   }
+  if (r.statusCode === 401) throw new Error("the helper refused the token (check Helper token)");
   if (r.statusCode === 404) return null;
   if (r.statusCode === 400 && /not found/i.test(String(r.body))) throw new Error("the desktop helper is too old: update it to lyrics-bridge 2.0");
   if (!r.ok) {

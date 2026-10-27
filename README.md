@@ -25,13 +25,13 @@ Ready-to-install files are in [`dist/`](dist/) (`*.spotiflac-ext`).
 
 `extensions/lyrics-hub` asks the lyric sources the [Lyric Viewer](https://github.com/yendumont/lyric-viewer) uses, from one
 extension, on mobile and desktop: Spicy Lyrics, lrc.red, AMLL TTML DB, BiniLyrics, Musixmatch, Unison, LRCLIB, LRCMux, NetEase,
-QQ Music, KuGou, Kuwo and Deezer, plus Genius and YouTube Music on desktop through the helper (`bridge/`). Install `dist/lyrics-hub_1.1.1.spotiflac-ext`, then in **Settings > Lyrics > Lyrics providers**
+QQ Music, KuGou, Kuwo and Deezer, plus Genius and YouTube Music through the helper (`bridge/`), on your PC or on a second computer that stays on for phones. Install `dist/lyrics-hub_1.3.0.spotiflac-ext`, then in **Settings > Lyrics > Lyrics providers**
 switch it on, put it first and switch the other providers off.
 
 Settings (grouped by the label prefix): **[General]** prefer best sync, source order, accept unsynced, word timing, background
 vocals, duet sides, timing offset, search time limit; **[Sources]** an on/off switch per source and the lrc.red / BiniLyrics
 word-sync mode (`hand`, `all`, `off`); **[Keys]** Spicy Lyrics, Musixmatch, optional Spotify; **[Translation]** off / line / word,
-language, Gemini key and model; **[Desktop only]** YouTube Music, Genius (favourite artists, loose search, best-guess match) and the Spotify-app lookup, all through the helper (skipped by themselves on a phone); **[Tools]** test
+language, Gemini key and model; **[Helper]** YouTube Music, Genius (favourite artists, loose search, best-guess match), the Spotify-app lookup, and where the helper runs (address and token; skipped by themselves when it can't be reached); **[Tools]** test
 connection and last lookup.
 
 Translation: with a Gemini key (yours) each lyric line is translated. *line* adds a translation line under each lyric
@@ -39,8 +39,7 @@ Translation: with a Gemini key (yours) each lyric line is translated. *line* add
 sends them as `[x-romaji]` + `[x-romaji-words]`, so Mornye shows them in its word-by-word "pronunciation" slot (use the lyrics
 language button). Mornye has no separate word-synced translation slot.
 
-Genius and YouTube Music only answer a normal program, not an extension sandbox, so they go through the helper and only work on
-desktop with it running. Genius is tried last (plain text only). Not included: Genius' cover-based matching and alias learning,
+Genius and YouTube Music only answer a normal program, not an extension sandbox, so they go through the helper and only work while it is running (on your PC, or on another computer for phones, see below). Genius is tried last (plain text only). Not included: Genius' cover-based matching and alias learning,
 Genius line meanings, and animated album covers (an extension can only return lyrics, not artwork).
 
 To rebuild: `cd extensions/lyrics-hub && ./build.sh` joins `src/*.js` into `index.js`; tests are in `tests/`
@@ -72,7 +71,20 @@ Every time: open Spotify, double-click `bridge/start-lyrics-bridge.cmd`, leave t
 More detail is in [`bridge/README.txt`](bridge/README.txt).
 
 **Safety.** The helper listens only on `127.0.0.1`, answers only `GET` requests to `/health`, `/search`, `/genius/*` and `/ytm/*`, and refuses any request with an
-`Origin` header, so websites can't use it. While Spotify's debug port is on, any program on your PC can use that port.
+`Origin` header, so websites can't use it. Server mode instead requires the token on every request and blocks an address after ten wrong ones. While Spotify's debug port is on, any program on your PC can use that port.
+
+### Phones: a private helper on a second computer
+
+Android and iPhone can't run the helper, so run it on another laptop that stays on, in server mode. Every request needs your
+secret token (`X-Bridge-Token`); without it the helper answers 401. On Windows, double-click `bridge/server/setup-server.cmd`: it
+makes the token, starts the helper at every logon, opens the firewall and prints the address and token to enter in Lyrics Hub
+(**[Helper] Helper address** and **Helper token**). Reach it from the phones with [Tailscale](https://tailscale.com) (works at
+home and away; the normal build already allows `*.ts.net`), or on the same Wi-Fi by its `.local` name. If Tailscale is inconvenient (another VPN, say), an IP can be written as
+`192-168-1-50.sslip.io` (a free public DNS service that turns it back into 192.168.1.50; the normal build allows `*.sslip.io`). **Warning:**
+that trusts sslip.io not to point the name elsewhere, and the token travels unencrypted, so Tailscale is safer. For a bare IP address or your
+own domain, `node bridge/server/make-extension.mjs <address>` writes a Lyrics Hub build that allows it. Full steps (including
+Linux, sleep settings and Cloudflare Tunnel) are in [`bridge/server/SERVER.txt`](bridge/server/SERVER.txt). Never port-forward it to
+the internet.
 
 ## Building the packages
 
@@ -85,18 +97,10 @@ zip -X ../../dist/spicy-lyrics-desktop_1.0.4.spotiflac-ext manifest.json index.j
 
 ## Credits and terms
 
-<<<<<<< HEAD
-=======
 - Based on my prior **Spicy Lyrics** and **Unison** extensions for SpotiFLAC Mobile.
->>>>>>> b2039cf08e637b0b12b931c34808739e2a7888b3
 - **Spicy Lyrics** lyrics come from [developers.spicylyrics.org](https://developers.spicylyrics.org) with your own key, and its
   [attribution rules](https://developers.spicylyrics.org/docs/attribution) apply. The provider name shown in Mornye carries the credit.
 - **Unison** lyrics come from <https://unison.boidu.dev> ([Better Lyrics](https://github.com/better-lyrics/unison), ODbL, attribution required).
 - The idea of reading Spotify through its debug port, and the search call used, come from
-<<<<<<< HEAD
   [yendumont/lyric-viewer](https://github.com/yendumont/lyric-viewer) (AGPL-3.0).
 - Not affiliated with Mornye, Spotify, Spicy Lyrics or Unison etc.
-=======
-  [yendumont/lyric-viewer](https://github.com/yendumont/lyric-viewer) (AGPL-3.0). The helper here is separately written.
-- Not affiliated with Mornye, Spotify, Spicy Lyrics or Unison.
->>>>>>> b2039cf08e637b0b12b931c34808739e2a7888b3

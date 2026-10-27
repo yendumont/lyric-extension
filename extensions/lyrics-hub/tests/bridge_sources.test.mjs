@@ -114,3 +114,29 @@ test("testConnection reports the helper's version and sources", () => {
   const r = ext.testConnection();
   assert.ok(/Genius\/YouTube Music available/.test(r.message), r.message);
 });
+
+test("helper on another machine: address forms, port setting, and the token goes in X-Bridge-Token", () => {
+  const yt = (host) => [host + "/ytm/search", { songs: [{ videoId: "BBBBBBBBBBB", title: "Bad Romance", artists: ["Lady Gaga"], durationMs: 294000 }] }];
+  const lyr = (host) => [host + "/ytm/lyrics", { text: "Rah rah", source: "LyricFind" }];
+  for (const [bridgeHost, bridgePort, base] of [["laptop.tail1234.ts.net", "", "laptop.tail1234.ts.net:8089"], ["192.168.1.50:9000", "", "192.168.1.50:9000"],
+    ["http://192.168.1.50", "9000", "192.168.1.50"], ["lap.local", "9100", "lap.local:9100"], ["192-168-1-171.sslip.io", "", "192-168-1-171.sslip.io:8089"], [" https://lyrics.example.org/ ", "", "lyrics.example.org"]]) {
+    const { ext, calls } = load(only(["ytmusic"], { bridgeHost, bridgePort, bridgeToken: "secret-token-1234567" }), [yt(base), lyr(base)]);
+    const r = ext.fetchLyrics(...TRACK);
+    assert.equal(r && r.provider, "YouTube Music (LyricFind)", bridgeHost);
+    assert.ok(calls.length >= 2 && calls.every((c) => JSON.stringify(c.headers).includes("secret-token-1234567")), "token sent on every call: " + bridgeHost);
+    assert.ok(!calls.some((c) => c.url.includes("127.0.0.1")), "never the local address");
+  }
+});
+
+test("helper token refused: a clear message, not 'no lyrics'", () => {
+  const { ext } = load(only(["ytmusic"], { bridgeHost: "lap.local", bridgeToken: "wrong" }), [["lap.local:8089/ytm/search", () => ({ statusCode: 401, body: "{\"error\":\"missing or wrong token\"}" })]]);
+  assert.equal(ext.fetchLyrics(...TRACK), null);
+  assert.ok(/refused the token/.test(JSON.stringify(ext.lastLookup())), "trace says so");
+});
+
+test("helper unreachable: the test says where it tried and why, not 'HTTP undefined'", () => {
+  const { ext } = load(only(["genius"], { bridgeHost: "lap.tail1.ts.net", bridgeToken: "x", spicyKey: "k", use_spicy: true }), [["lap.tail1.ts.net:8089", () => ({ error: "dns error: no such host" })]]);
+  const msg = JSON.stringify(ext.testConnection());
+  assert.ok(/not reachable at http:\/\/lap\.tail1\.ts\.net:8089 \(dns error/.test(msg), msg);
+  assert.ok(!/undefined/.test(msg), msg);
+});

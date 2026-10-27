@@ -1,0 +1,21 @@
+# Linux (systemd): run the helper for your phones at boot.
+#   1. Put the bridge folder at /opt/lyrics-bridge and run once:  node /opt/lyrics-bridge/lyrics-bridge.mjs --init
+#   2. sudo cp lyrics-bridge.service /etc/systemd/system/ && sudo systemctl enable --now lyrics-bridge
+[Unit]
+Description=Lyrics Hub bridge
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+WorkingDirectory=/opt/lyrics-bridge
+ExecStart=/usr/bin/node /opt/lyrics-bridge/lyrics-bridge.mjs
+Restart=always
+RestartSec=10
+# Settings and the token come from /opt/lyrics-bridge/.env
+DynamicUser=yes
+ProtectSystem=strict
+ProtectHome=true
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -1,8 +1,8 @@
 {
   "name": "lyrics-hub",
   "displayName": "Lyrics Hub",
-  "version": "1.1.1",
-  "description": "One lyrics provider for all the sources the Lyric Viewer uses: Spicy Lyrics, lrc.red, AMLL, BiniLyrics, Musixmatch, Unison, LRCLIB, LRCMux, NetEase, QQ Music, KuGou, Kuwo, Deezer, and (desktop, through the helper) YouTube Music and Genius. Keeps the best-synced result, can translate lyrics (line or word by word), and works on mobile and desktop.",
+  "version": "1.3.0",
+  "description": "One lyrics provider for all the sources the Lyric Viewer uses: Spicy Lyrics, lrc.red, AMLL, BiniLyrics, Musixmatch, Unison, LRCLIB, LRCMux, NetEase, QQ Music, KuGou, Kuwo, Deezer, and (through the helper, on your PC or a server that stays on) YouTube Music and Genius. Keeps the best-synced result, can translate lyrics (line or word by word), and works on mobile and desktop.",
   "author": "Community",
   "homepage": "https://github.com/yendumont/lyric-viewer",
   "permissions": {
@@ -29,7 +29,11 @@
       "api.song.link",
       "accounts.spotify.com",
       "api.spotify.com",
-      "127.0.0.1"
+      "127.0.0.1",
+      "*.ts.net",
+      "*.local",
+      "*.trycloudflare.com",
+      "*.sslip.io"
     ],
     "storage": true,
     "allowHttp": true
@@ -198,52 +202,67 @@
     },
     {
       "key": "use_ytmusic",
-      "label": "[Desktop only] YouTube Music",
+      "label": "[Helper] YouTube Music",
       "type": "boolean",
-      "description": "Ask YouTube Music (plain text lyrics). Needs the desktop helper (lyrics-bridge) running; skipped on a phone.",
+      "description": "Ask YouTube Music (plain text lyrics). Needs the helper (lyrics-bridge) running on this PC or on a server (see Helper address); skipped when it can't be reached.",
       "default": true
     },
     {
       "key": "use_genius",
-      "label": "[Desktop only] Genius",
+      "label": "[Helper] Genius",
       "type": "boolean",
-      "description": "Ask Genius (plain text lyrics, last resort). Needs the desktop helper (lyrics-bridge) running; skipped on a phone.",
+      "description": "Ask Genius (plain text lyrics, last resort). Needs the helper (lyrics-bridge) running on this PC or on a server (see Helper address); skipped when it can't be reached.",
       "default": true
     },
     {
       "key": "geniusFavoriteArtists",
-      "label": "[Desktop only] Genius favourite artists",
+      "label": "[Helper] Genius favourite artists",
       "type": "string",
       "description": "Real artists whose songs are listed on Spotify under a different (uploader) name, comma-separated, e.g. jaydes, someone else. Genius is searched for them by name.",
       "default": ""
     },
     {
       "key": "geniusLooseSearch",
-      "label": "[Desktop only] Genius loose search",
+      "label": "[Helper] Genius loose search",
       "type": "boolean",
       "description": "When the exact song and artist are not found on Genius, try broader searches (other word orders, the album, symbol-free artist names).",
       "default": true
     },
     {
       "key": "geniusEagerMatch",
-      "label": "[Desktop only] Genius best guess",
+      "label": "[Helper] Genius best guess",
       "type": "boolean",
       "description": "As a last resort show the best-looking Genius result even though nothing proved it is the right song (obscure results preferred over famous ones).",
       "default": true
     },
     {
       "key": "useSpotifyApp",
-      "label": "[Desktop only] Find songs through the Spotify app",
+      "label": "[Helper] Find songs through the Spotify app",
       "type": "boolean",
-      "description": "Asks your running Spotify app (with Spicetify's debug port open), through the desktop helper, for the song's ID. Desktop only; skipped automatically on a phone. Needs 'Allow Local Network Access' (Settings > Download).",
+      "description": "Asks your running Spotify app (with Spicetify's debug port open), through the desktop helper, for the song's ID. Needs Spotify with the debug port open on the machine the helper runs on; skipped when that isn't available. Needs 'Allow Local Network Access' (Settings > Download).",
       "default": true
     },
     {
       "key": "bridgePort",
-      "label": "[Desktop only] Helper port",
+      "label": "[Helper] Helper port",
       "type": "string",
       "description": "Port of the lyrics-bridge helper. Default 8089.",
       "default": "8089"
+    },
+    {
+      "key": "bridgeHost",
+      "label": "[Helper] Helper address",
+      "type": "string",
+      "description": "Empty = the helper on this PC (127.0.0.1). For a helper on another machine that stays on (a laptop or server, for phones and tablets): its Tailscale name (laptop.tailnet.ts.net, recommended), a name ending in .local, or an address written as 192-168-1-50.sslip.io (a free public DNS service that turns the dashes back into the IP 192.168.1.50; WARNING: you trust sslip.io not to point the name elsewhere, and the token travels unencrypted over http, so prefer Tailscale). Add :port if it isn't 8089, or paste a full https:// address. Any other name or a bare IP needs a build made with bridge/server/make-extension.mjs.",
+      "default": ""
+    },
+    {
+      "key": "bridgeToken",
+      "label": "[Helper] Helper token",
+      "type": "string",
+      "secret": true,
+      "description": "The secret the helper on another machine was started with (BRIDGE_TOKEN in its .env). Needed whenever Helper address is set. Not needed for the helper on this PC.",
+      "default": ""
     },
     {
       "key": "spicyKey",

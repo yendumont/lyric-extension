@@ -143,7 +143,7 @@ function testConnection() {
     for (var id in PROVIDERS) if (providerOn(id)) enabled.push(PROVIDERS[id].label);
     steps.push("Sources on: " + (enabled.join(", ") || "none"));
     if (str("spicyKey") && providerOn("spicy")) {
-      if (on("useSpotifyApp", true)) steps.push("Desktop helper: " + bridgeHealth().text);
+      if (on("useSpotifyApp", true)) steps.push("Helper: " + bridgeHealth().text);
       var found = resolveSpotifyId("Bad Romance", "Lady Gaga", 294);
       steps.push(found.id ? "Spotify track lookup OK" : "Spotify track lookup failed: " + found.error);
       if (found.id) {
@@ -153,7 +153,7 @@ function testConnection() {
     }
     if (providerOn("genius") || providerOn("ytmusic")) {
       var bh = bridgeHealth();
-      steps.push("Desktop helper (Genius / YouTube Music): " + bh.text);
+      steps.push("Helper (Genius / YouTube Music): " + bh.text);
     }
     if (str("geminiApiKey") && str("translationMode", "off") !== "off") {
       try { askGemini("Reply with a JSON array containing the single string \"ok\".", PLAIN_SCHEMA); steps.push("Gemini OK"); }

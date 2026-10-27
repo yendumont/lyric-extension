@@ -43,8 +43,13 @@ If Spotify says "too many requests"
   extension then uses its backup lookup for that song. Downloading many songs at once triggers this
   more, so smaller batches work better.
 
+Phones and tablets
+  They can't run this helper. To use Genius and YouTube Music on Android or iPhone, run the helper on a second
+  computer that stays on, in server mode, with a token: see server\SERVER.txt.
+
 Safety
-  * Listens only on 127.0.0.1 (not reachable from other devices).
+  * By default it listens only on 127.0.0.1 (not reachable from other devices). Server mode (server\SERVER.txt)
+    listens for other devices but needs your secret token on every request.
   * Answers only GET /health, /search, /genius/* and /ytm/*, and refuses any request that has an Origin header,
     so websites in your browser can't use it.
   * Remember: while Spotify's debug port is on, any program on your PC can use that port.

@@ -1,0 +1,53 @@
+Lyrics Hub bridge as a private server (for Android and iPhone)
+===============================================================
+
+What this is
+  The same helper as on your PC, running on a second laptop that stays on, so your phones can use Genius and
+  YouTube Music through it. Phones can't run the helper themselves. Nothing else is sent anywhere except to those
+  sites. The Spotify lookup only works if Spotify is open on that laptop with its debug port (optional, see README.txt).
+
+How it's protected
+  * Every request must carry your secret token (X-Bridge-Token). Without it the helper answers 401 and nothing else.
+    Ten wrong tries in a minute from one address are blocked for a minute.
+  * It answers GET requests for lyrics only, and refuses anything coming from a web page.
+  * The token is stored in the file ".env" in this folder. Keep it private; never commit it (.gitignore has it).
+  * Don't forward port 8089 on your router to the internet. Use Tailscale (below) to reach it away from home.
+
+Set up the laptop (Windows)
+  1. Install Node.js 22 or newer (https://nodejs.org).
+  2. Double-click server\setup-server.cmd. It creates the token, makes the helper start at every logon, opens the
+     firewall for private networks and starts it. It prints "Helper address" and "Helper token".
+  3. In Windows power settings, set sleep to "Never" while plugged in (and "When I close the lid" to "Do nothing").
+  Linux: see server/lyrics-bridge.service. Mac: run "node lyrics-bridge.mjs --init", then start
+  "node lyrics-bridge.mjs" at login (a Login Item or launchd).
+
+Reach it from your phones - pick one
+  A) Tailscale (recommended: works at home and away, encrypted, free for personal use)
+     Install Tailscale on the laptop and on each phone, log in to the same account, and turn on MagicDNS.
+     Your address is the laptop's name, e.g.  laptop.tail1234.ts.net  (shown in the Tailscale app). The normal
+     Lyrics Hub build already allows *.ts.net. Keep Tailscale connected on the phone.
+  B) Home Wi-Fi only
+     Use the laptop's name ending in .local (laptop.local) or its IP address (192.168.1.50; give it a fixed address in
+     your router). The normal build allows *.local. For an IP address run:  node make-extension.mjs 192.168.1.50
+     and install the file it writes instead of the normal Lyrics Hub. Phone and laptop must be on the same Wi-Fi.
+     In Mornye turn on Settings > Download > Allow Local Network Access (on iPhone, press Allow on the local network prompt).
+  C) Any IP address, with the sslip.io trick (use only if Tailscale is inconvenient, e.g. with another VPN)
+     Write the IP with dashes and add .sslip.io: 192.168.1.50 becomes 192-168-1-50.sslip.io. sslip.io is a free public DNS service
+     that turns the name back into that IP, and the normal build allows *.sslip.io. Works for LAN (Allow Local Network Access must be on)
+     and for Tailscale 100.x addresses, but:
+       WARNING: you trust sslip.io. If it were hijacked or misused it could point the name at someone else's machine and your
+       token would be sent there, unencrypted. The token only unlocks this helper (lyric lookups and Spotify search; no files),
+       and you can replace it (delete .env, run setup-server.cmd again). Some routers also refuse DNS answers that point to home
+       addresses ("DNS rebind protection"), which breaks it. Tailscale (A) avoids all of this.
+  D) Your own domain over https (Cloudflare Tunnel, etc.): paste the full https://... address. Run
+     node make-extension.mjs your.domain  first unless it ends in .trycloudflare.com.
+
+In Mornye (Lyrics Hub settings, [Helper] group)
+  Helper address:  the address from above (add :8089 only if you changed the port; or paste a full https:// address)
+  Helper token:    the token printed by setup-server.cmd (also in .env as BRIDGE_TOKEN)
+  Then use [Tools] "Test connection": it should say helper OK. "refused the token" means the token is wrong.
+
+Update, stop, remove
+  Update: replace lyrics-bridge.mjs with the new one and restart (close its window; it comes back within 10 seconds).
+  Stop and remove: server\remove-server.cmd.
+  New token: delete .env, run setup-server.cmd again, and enter the new token in Mornye.
