@@ -1,4 +1,4 @@
-// Lyrics Hub bridge for the "Lyrics Hub" (and "Spicy Lyrics (Desktop)") Mornye extensions. (v2.2)
+// Lyrics Hub bridge: the helper for the "Lyrics Hub" Mornye extension. (v2.2)
 //
 // Mornye extensions can only make plain, header-limited HTTP requests. This small helper, running on
 // your PC at http://127.0.0.1:8089, does the things they can't:

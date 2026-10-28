@@ -1,6 +1,6 @@
-// ---- Genius and YouTube Music, through the desktop helper (lyrics-bridge) ----------------------------------------
-// Both refuse the extension sandbox, so the helper program on your PC fetches them (see bridge/). Desktop only:
-// on a phone the helper cannot be reached and these two are skipped.
+// ---- Genius and YouTube Music, through the helper (lyrics-bridge) -----------------------------------------------
+// Both refuse the extension sandbox, so the helper program fetches them (see bridge/). It runs on this PC or, for phones,
+// on a second computer (Helper address). If it can't be reached these two are skipped.
 
 function bridgeGet(path, t) {
   if (t && t.bridgeDown) throw new Error("desktop helper not reachable (skipped)");

@@ -1,16 +1,25 @@
-Lyrics Hub bridge as a private server (for Android and iPhone)
-===============================================================
+Lyrics Hub bridge as a private server (phones, tablets and other computers)
+=========================================================================
 
 What this is
-  The same helper as on your PC, running on a second laptop that stays on, so your phones can use Genius and
-  YouTube Music through it. Phones can't run the helper themselves. Nothing else is sent anywhere except to those
-  sites. The Spotify lookup only works if Spotify is open on that laptop with its debug port (optional, see README.txt).
+  The same helper as on your PC, running on a second laptop that stays on, so your phones, tablets and other
+  computers can use Genius, YouTube Music and the Spotify lookup through it. Phones can't run the helper themselves.
+  Nothing else is sent anywhere except to those sites. The Spotify lookup only works if Spotify is open on that laptop
+  with its debug port on (optional, see ..\README.txt). Only want it on one PC? Use ..\start-lyrics-bridge.cmd instead.
+
+The files in this folder
+  setup-server.cmd       Run once. Makes the token, starts the helper at every logon, opens the firewall, starts it.
+  run-server.cmd         Starts it now and restarts it if it crashes. Use this if you closed its window.
+  remove-server.cmd      Undoes setup-server.cmd.
+  make-extension.mjs     Makes a Lyrics Hub build that allows a bare IP address or your own domain.
+  lyrics-bridge.service  The Linux (systemd) version of setup-server.cmd.
+  SERVER.txt             This guide.
 
 How it's protected
   * Every request must carry your secret token (X-Bridge-Token). Without it the helper answers 401 and nothing else.
     Ten wrong tries in a minute from one address are blocked for a minute.
   * It answers GET requests for lyrics only, and refuses anything coming from a web page.
-  * The token is stored in the file ".env" in this folder. Keep it private; never commit it (.gitignore has it).
+  * The token is stored in the file ".env" next to lyrics-bridge.mjs (one folder up). Keep it private; never commit it (.gitignore has it).
   * Don't forward port 8089 on your router to the internet. Use Tailscale (below) to reach it away from home.
 
 Set up the laptop (Windows)
@@ -21,7 +30,7 @@ Set up the laptop (Windows)
   Linux: see server/lyrics-bridge.service. Mac: run "node lyrics-bridge.mjs --init", then start
   "node lyrics-bridge.mjs" at login (a Login Item or launchd).
 
-Reach it from your phones - pick one
+Reach it from your devices - pick one
   A) Tailscale (recommended: works at home and away, encrypted, free for personal use)
      Install Tailscale on the laptop and on each phone, log in to the same account, and turn on MagicDNS.
      Your address is the laptop's name, e.g.  laptop.tail1234.ts.net  (shown in the Tailscale app). The normal

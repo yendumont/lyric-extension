@@ -1,61 +1,71 @@
-Lyrics Hub bridge (v2.0) for the "Lyrics Hub" and "Spicy Lyrics (Desktop)" extensions
-===================================================================================
+Lyrics Hub bridge (the helper), version 2.2
+============================================
 
-What it does
-  One small helper for everything the Mornye extensions can't do themselves:
-    * Spotify lookup (Spicy Lyrics, Musixmatch, AMLL need the exact Spotify track ID) - see below.
-    * Genius: searches Genius and returns a song's lyrics as plain text (used by the Lyrics Hub's Genius
-      source, with its favourite-artists / loose-search / best-guess options).
-    * YouTube Music: searches songs and returns their lyrics (the Lyrics Hub's YouTube Music source).
-  Genius and YouTube Music only answer a normal browser-like program, not an extension sandbox, so this helper
-  asks them for the extension (the same job the Lyric Viewer's built-in worker does). Nothing is sent anywhere
-  except to those sites. Genius and YouTube Music work without Spotify running; only the Spotify lookup needs it.
+What it is
+  A small program that does what the Lyrics Hub extension can't do from inside Mornye:
+    * Genius: searches Genius and returns a song's lyrics (plain text).
+    * YouTube Music: searches songs and returns their lyrics (plain text).
+    * Spotify song lookup: asks your running Spotify app for a song's exact ID, which Spicy Lyrics,
+      Musixmatch and AMLL need. Optional: without it the extension uses a no-account lookup instead.
+  Needs Node.js 22 or newer (https://nodejs.org). Nothing else to install. If it isn't running, Lyrics Hub just
+  skips these sources and uses the rest.
 
-Spotify lookup
-  Mornye extensions can't open the Spotify debug port themselves (it needs a WebSocket), so this
-  tiny helper does it for them. When Mornye asks Spicy Lyrics for a song, the extension asks the
-  helper, the helper asks your running Spotify app to search (using Spotify's own login), and the
-  exact Spotify track ID goes back to the extension. No keys needed, nothing leaves your PC except
-  the normal Spotify and Spicy Lyrics requests.
+Which file do I use?
+  Only on this PC (the simple way)     ->  start-lyrics-bridge.cmd
+  For phones / other computers         ->  server\setup-server.cmd once, then it starts by itself (server\SERVER.txt)
 
-  If the helper isn't running, the extension quietly falls back to its normal key-free lookup,
-  so nothing breaks.
+Every file in this folder
+  lyrics-bridge.mjs             The helper itself. Everything else here just starts or sets it up.
+  start-lyrics-bridge.cmd       Starts the helper for THIS PC only. Double-click it each time (see below).
+  README.txt                    This file.
+  tests\bridge.test.mjs         Tests for developers. You don't need it.
+  .env                          Made by setup-server.cmd (not in the repo): your private settings and secret token.
+  server\                       Only for running the helper for OTHER devices (server mode):
+    SERVER.txt                    The full guide: Tailscale, firewall, sleep settings, updating.
+    setup-server.cmd              One-time setup: makes the token, starts it at every logon, opens the firewall.
+    run-server.cmd                Starts server mode right now and restarts it if it crashes. For when you closed it.
+    remove-server.cmd             Undoes setup-server.cmd (stops starting at logon, closes the firewall port).
+    make-extension.mjs            Makes a Lyrics Hub build that allows a bare IP address or your own domain.
+    lyrics-bridge.service         The same thing as setup-server.cmd for Linux (systemd).
 
-Setup (one time)
-  1. Node.js 22 or newer must be installed (https://nodejs.org). Check with:  node --version
-  2. Spotify must be started with the debug port open. With Spicetify, put this in
+start-lyrics-bridge.cmd or run-server.cmd?
+                              start-lyrics-bridge.cmd          server\run-server.cmd
+  Who can use it              only this PC (127.0.0.1)         other devices too (phones, other PCs)
+  Token (password)            none                             required on every request (from .env)
+  If it crashes               stays stopped                    restarts itself after 10 seconds
+  Starts at login             no, you start it                 yes, once setup-server.cmd has run
+  Lyrics Hub "Helper address" leave empty                      the address of that computer, plus the token
+
+Use it only on this PC (setup, once)
+  1. Install Node.js 22 or newer. Check with:  node --version
+  2. Only for the Spotify song lookup: start Spotify with the debug port open. With Spicetify, put this in
        %APPDATA%\spicetify\config-xpui.ini   under [Setting]:
        spotify_launch_flags = --remote-debugging-port=8088
-     then run  spicetify apply  and restart Spotify. (You can check it worked by opening
-     http://127.0.0.1:8088/json in a browser while Spotify is open: it should show text.)
-     The helper tries port 8088 first, then 9222. For another port:  start-lyrics-bridge.cmd --cdp 9333
-  3. In Mornye Desktop: Settings > Download > turn on "Allow Local Network Access".
-     (Mornye blocks 127.0.0.1 otherwise.)
-  4. Install the extension "Lyrics Hub" (or "Spicy Lyrics (Desktop)") in Mornye, paste your Spicy Lyrics key, and leave
-     "Find songs through the Spotify app" on. For Genius and YouTube Music you only need steps 1 and 3.
+     then run  spicetify apply  and restart Spotify. (To check, open http://127.0.0.1:8088/json in a browser while
+     Spotify is open: it should show text.) The helper tries port 8088, then 9222. For another port:
+     start-lyrics-bridge.cmd --cdp 9333
+  3. In Mornye Desktop: Settings > Download > turn on "Allow Local Network Access" (Mornye blocks 127.0.0.1 otherwise).
+  4. Install "Lyrics Hub" in Mornye. Leave "Helper address" empty.
+  Genius and YouTube Music only need steps 1, 3 and 4.
 
 Every time
-  Open Spotify, then double-click  start-lyrics-bridge.cmd  and leave its window open while you
-  download. In the extension's settings, "Test connection" tells you if the helper can see Spotify.
+  Double-click start-lyrics-bridge.cmd and leave its window open while you download. (For the Spotify lookup,
+  open Spotify first.) In Lyrics Hub, [Tools] "Test connection" says whether the helper is reachable and whether it
+  can see Spotify.
 
 If Spotify says "too many requests"
-  The helper waits out the limit (usually under a minute) and answers "try again in Ns" meanwhile; the
-  extension then uses its backup lookup for that song. Downloading many songs at once triggers this
-  more, so smaller batches work better.
-
-Phones and tablets
-  They can't run this helper. To use Genius and YouTube Music on Android or iPhone, run the helper on a second
-  computer that stays on, in server mode, with a token: see server\SERVER.txt.
+  The helper waits out the limit (usually under a minute) and answers "try again in Ns" meanwhile; the extension
+  then uses its backup lookup for that song. Downloading many songs at once triggers this more.
 
 Safety
-  * By default it listens only on 127.0.0.1 (not reachable from other devices). Server mode (server\SERVER.txt)
-    listens for other devices but needs your secret token on every request.
-  * Answers only GET /health, /search, /genius/* and /ytm/*, and refuses any request that has an Origin header,
+  * start-lyrics-bridge.cmd listens only on 127.0.0.1. Server mode listens for other devices but needs your secret
+    token on every request (wrong tries are blocked for a minute after ten).
+  * It answers only GET /health, /search, /genius/* and /ytm/*, and refuses any request that has an Origin header,
     so websites in your browser can't use it.
-  * Remember: while Spotify's debug port is on, any program on your PC can use that port.
-    Turn the flag off if you don't want that.
+  * While Spotify's debug port is on, any program on that computer can use that port. Turn the flag off if you
+    don't want that.
 
-Changing the helper's port: start-lyrics-bridge.cmd --port 8090, and set the same number in the
-extension's "Helper port" setting.
+Changing the port
+  start-lyrics-bridge.cmd --port 8090, and set the same number in Lyrics Hub's "Helper port" setting.
 
 Credit: the idea of reading Spotify through its debug port comes from yendumont/lyric-viewer.

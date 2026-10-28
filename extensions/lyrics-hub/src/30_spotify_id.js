@@ -194,7 +194,7 @@ function resolveViaDeezer(track, artist, durationSec) {
   return { error: "No Deezer match (" + results.length + " results;" + firstD + ")" };
 }
 
-// ---- Spotify app lookup via the local helper (spotify-bridge.mjs) ----
+// ---- Spotify app lookup via the helper (lyrics-bridge.mjs) ----
 // Where the helper is. Empty "Helper address" = this PC (127.0.0.1). Otherwise a name or IP, with or without :port or http(s)://,
 // for a helper that runs on another machine that stays on (server mode, with a token).
 function bridgeBase() {

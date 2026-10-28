@@ -1,10 +1,10 @@
 {
   "name": "lyrics-hub",
   "displayName": "Lyrics Hub",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "One lyrics provider for all the sources the Lyric Viewer uses: Spicy Lyrics, lrc.red, AMLL, BiniLyrics, Musixmatch, Unison, LRCLIB, LRCMux, NetEase, QQ Music, KuGou, Kuwo, Deezer, and (through the helper, on your PC or a server that stays on) YouTube Music and Genius. Keeps the best-synced result, can translate lyrics (line or word by word), and works on mobile and desktop.",
   "author": "Community",
-  "homepage": "https://github.com/yendumont/lyric-viewer",
+  "homepage": "https://github.com/yendumont/lyric-extension",
   "permissions": {
     "network": [
       "api.spicylyrics.org",

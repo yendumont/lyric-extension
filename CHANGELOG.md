@@ -1,5 +1,10 @@
 # Changelog
 
+## lyrics-hub 1.3.1
+- Packages are now named `.mornye-ext`.
+- Removed the separate Spicy Lyrics, Spicy Lyrics (Desktop) and Unison extensions and the old `spotify-bridge`: Lyrics Hub and `lyrics-bridge` replace them.
+- README rewritten: which setup you need, what every file is, `start-lyrics-bridge.cmd` (this PC only) versus `server/run-server.cmd` (other devices), and a file guide in `bridge/README.txt`.
+
 ## lyrics-hub 1.3.0 / Helper 2.2
 - Lyrics Hub allows `*.sslip.io`, so any IP can be used as `192-168-1-50.sslip.io` when Tailscale is inconvenient (with a warning in the setting, README and SERVER.txt).
 - Helper startup and `--init` messages say which addresses the extension accepts.

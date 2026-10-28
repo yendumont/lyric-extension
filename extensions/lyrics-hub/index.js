@@ -1271,7 +1271,7 @@ function resolveViaDeezer(track, artist, durationSec) {
   return { error: "No Deezer match (" + results.length + " results;" + firstD + ")" };
 }
 
-// ---- Spotify app lookup via the local helper (spotify-bridge.mjs) ----
+// ---- Spotify app lookup via the helper (lyrics-bridge.mjs) ----
 // Where the helper is. Empty "Helper address" = this PC (127.0.0.1). Otherwise a name or IP, with or without :port or http(s)://,
 // for a helper that runs on another machine that stays on (server mode, with a token).
 function bridgeBase() {
@@ -2130,9 +2130,9 @@ function fetchAmll(t) {
   }
   return null;
 }
-// ---- Genius and YouTube Music, through the desktop helper (lyrics-bridge) ----------------------------------------
-// Both refuse the extension sandbox, so the helper program on your PC fetches them (see bridge/). Desktop only:
-// on a phone the helper cannot be reached and these two are skipped.
+// ---- Genius and YouTube Music, through the helper (lyrics-bridge) -----------------------------------------------
+// Both refuse the extension sandbox, so the helper program fetches them (see bridge/). It runs on this PC or, for phones,
+// on a second computer (Helper address). If it can't be reached these two are skipped.
 
 function bridgeGet(path, t) {
   if (t && t.bridgeDown) throw new Error("desktop helper not reachable (skipped)");

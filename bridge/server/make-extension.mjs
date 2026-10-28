@@ -5,7 +5,7 @@
 //   node make-extension.mjs 192.168.1.50 lyrics.example.org
 //
 // It reads ../../extensions/lyrics-hub (or --from <folder with manifest.json and index.js>) and writes
-// lyrics-hub_<version>_private.spotiflac-ext next to where you ran it (or --out <file>). Install that in Mornye
+// lyrics-hub_<version>_private.mornye-ext next to where you ran it (or --out <file>). Install that in Mornye
 // instead of the normal one; it keeps the same name, so it replaces it. Needs Node.js 22 or newer.
 import fs from "node:fs";
 import path from "node:path";
@@ -27,7 +27,7 @@ try {
 
 const network = manifest.permissions.network;
 for (const h of hosts) if (!network.includes(h)) network.push(h);
-out = path.resolve(out || `lyrics-hub_${manifest.version}_private.spotiflac-ext`);
+out = path.resolve(out || `lyrics-hub_${manifest.version}_private.mornye-ext`);
 
 // A zip with the two files stored uncompressed.
 const crcTable = Array.from({ length: 256 }, (_, n) => { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; return c >>> 0; });
