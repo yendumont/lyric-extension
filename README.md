@@ -71,6 +71,19 @@ Extensions can't do either, so this small program does it for them and Lyrics Hu
 
 If the helper isn't running, Lyrics Hub skips those sources and carries on with the rest.
 
+**Genius loose search:** when the exact song isn't listed, the helper tries broader searches and picks the best match. Left: the helper's window while it searches. Right: the lyrics Mornye gets.
+
+<table>
+  <tr>
+    <td width="50%"><img src="assets/genius1.gif" width="100%" alt="The helper's window showing the Genius loose search"></td>
+    <td width="50%"><img src="assets/genius2.gif" width="100%" alt="The lyrics found by the Genius loose search"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>The helper searching</sub></td>
+    <td align="center"><sub>The lyrics it found</sub></td>
+  </tr>
+</table>
+
 ### Helper on this PC
 
 Setup, once:
