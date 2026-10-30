@@ -8,10 +8,12 @@ translation and 15 lyric sources. A small optional **helper** (`lyrics-bridge`) 
 
 | File or folder | What it is |
 |---|---|
-| [`dist/lyrics-hub_1.3.1.mornye-ext`](dist/) | **The extension. Install this in Mornye.** |
+| [`registry.json`](registry.json) | The list Mornye's **Repo** tab reads, so Lyrics Hub installs and updates from this repo (see [Install](#install)) |
+| [`dist/lyrics-hub_1.3.1.mornye-ext`](dist/) | **The extension itself.** You can also install this file by hand |
 | [`dist/lyrics-bridge.zip`](dist/) | The helper, ready to unzip and run (the same files as `bridge/`). Optional. |
 | `extensions/lyrics-hub/` | Source of the extension (`src/*.js`, `manifest.json`, the built `index.js`, `tests/`) |
 | `bridge/` | Source of the helper. Every file in it is explained in [`bridge/README.txt`](bridge/README.txt) |
+| `make-registry.mjs` | Rewrites `registry.json` after each release (see [Releasing](#releasing)) |
 | `CHANGELOG.md`, `LICENSE` | What changed in each version, and the licence |
 
 ## Which setup do I need?
@@ -24,11 +26,19 @@ translation and 15 lyric sources. A small optional **helper** (`lyrics-bridge`) 
 
 ## Install
 
-1. Download `lyrics-hub_1.3.1.mornye-ext` from `dist/`.
-2. In Mornye, install it from the Extensions page.
-3. For Spicy Lyrics, paste your free key from <https://developers.spicylyrics.org> into the extension's settings.
-4. In **Settings > Lyrics > Lyrics providers**, switch **Lyrics Hub** on, move it to the top and switch the other providers off.
-5. Optional: **[Tools] Test connection** in the extension's settings checks your keys and helper.
+**From Mornye's Repo tab (recommended, it also shows updates):**
+
+1. In Mornye, open the **Repo** tab and tap **Add Repository**.
+2. Enter `https://github.com/yendumont/lyric-extension` and confirm. (Mornye reads `registry.json` from the repo. The direct link works too: `https://raw.githubusercontent.com/yendumont/lyric-extension/main/registry.json`.)
+3. Install **Lyrics Hub**.
+
+**Or by hand:** download `lyrics-hub_1.3.1.mornye-ext` from `dist/` and install it from the Extensions page.
+
+Then:
+
+1. For Spicy Lyrics, paste your free key from <https://developers.spicylyrics.org> into the extension's settings.
+2. In **Settings > Lyrics > Lyrics providers**, switch **Lyrics Hub** on, move it to the top and switch the other providers off.
+3. Optional: **[Tools] Test connection** in the extension's settings checks your keys and helper.
 
 ## Lyrics Hub
 
@@ -94,6 +104,10 @@ Full steps (sleep settings, firewall, Linux, Cloudflare Tunnel, updating) are in
   zip -X ../../dist/lyrics-hub_1.3.1.mornye-ext manifest.json index.js
   ```
 - **Helper:** `cd bridge/tests && node --test bridge.test.mjs`. `dist/lyrics-bridge.zip` holds `lyrics-bridge.mjs`, `start-lyrics-bridge.cmd`, `README.txt` and `server/`.
+
+### Releasing
+
+After changing the extension: raise `version` in `extensions/lyrics-hub/manifest.json`, run `sh build.sh`, zip the new `dist/lyrics-hub_<version>.mornye-ext` (above), then run `node make-registry.mjs` from the repo root. It rewrites `registry.json` with the new version, the download link and the file's sha256 (Mornye refuses a download that doesn't match it), so commit `registry.json` together with the new package. Delete the old package from `dist/`.
 
 ## Credits and terms
 

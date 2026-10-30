@@ -1,5 +1,8 @@
 # Changelog
 
+## Repo
+- Added `registry.json` and `make-registry.mjs`: add this repo in Mornye's **Repo** tab to install and update Lyrics Hub.
+
 ## lyrics-hub 1.3.1
 - Packages are now named `.mornye-ext`.
 - Removed the separate Spicy Lyrics, Spicy Lyrics (Desktop) and Unison extensions and the old `spotify-bridge`: Lyrics Hub and `lyrics-bridge` replace them.
