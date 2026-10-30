@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "updated_at": "2026-10-30",
+  "extensions": [
+    {
+      "id": "lyrics-hub",
+      "name": "lyrics-hub",
+      "display_name": "Lyrics Hub",
+      "version": "1.3.1",
+      "description": "All-in-one lyrics: 15 sources, word-by-word sync, background vocals, duets, translation. Genius, YouTube Music and the Spotify lookup through the optional helper.",
+      "download_url": "https://raw.githubusercontent.com/yendumont/lyric-extension/main/dist/lyrics-hub_1.3.1.mornye-ext",
+      "category": "lyrics",
+      "tags": [
+        "lyrics",
+        "word-synced",
+        "translation",
+        "spicy lyrics",
+        "genius"
+      ],
+      "updated_at": "2026-10-30",
+      "sha256": "6d4443d8379e1b08b90ae863cfe1a17d64a58e3128c8ffd23f7833e1629eafdd"
+    }
+  ]
+}
