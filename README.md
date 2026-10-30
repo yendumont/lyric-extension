@@ -13,7 +13,7 @@ translation and 15 lyric sources. A small optional **helper** (`lyrics-bridge`) 
 | [`dist/lyrics-bridge.zip`](dist/) | The helper, ready to unzip and run (the same files as `bridge/`). Optional. |
 | `extensions/lyrics-hub/` | Source of the extension (`src/*.js`, `manifest.json`, the built `index.js`, `tests/`) |
 | `bridge/` | Source of the helper. Every file in it is explained in [`bridge/README.txt`](bridge/README.txt) |
-| `make-registry.mjs` | Rewrites `registry.json` after each release (see [Releasing](#releasing)) |
+| `make-registry.js` | Rewrites `registry.json` after each release (see [Releasing](#releasing)) |
 | `CHANGELOG.md`, `LICENSE` | What changed in each version, and the licence |
 
 ## Which setup do I need?
@@ -51,6 +51,9 @@ It asks the lyric sources the [Lyric Viewer](https://github.com/yendumont/lyric-
 - **Translation.** With your own Gemini key, *line* adds a translation line under each lyric (`[x-translation]`, shown by Mornye as the translation). *word* splits the translation into chunks tied to the sung words and sends them as `[x-romaji]` + `[x-romaji-words]`, so Mornye shows them in its word-by-word "pronunciation" slot (use the lyrics language button). Mornye has no separate word-synced translation slot.
 - **Diagnostics.** **[Tools] Last lookup** shows which sources were asked, in what order, and which one answered.
 
+<p align="center"><img src="assets/synced-lyrics.gif" width="720" alt="Word-by-word synced lyrics in Mornye"></p>
+<p align="center"><sub>Word-by-word sync in Mornye.</sub></p>
+
 Settings are grouped by the label prefix: **[General]** prefer best sync, source order, accept unsynced, word timing, background vocals, duet sides, timing offset, search time limit; **[Sources]** an on/off switch per source and the lrc.red / BiniLyrics word-sync mode (`hand`, `all`, `off`); **[Keys]** Spicy Lyrics, Musixmatch, optional Spotify; **[Translation]** off / line / word, language, Gemini key and model; **[Helper]** YouTube Music, Genius (favourite artists, loose search, best-guess match), the Spotify-app lookup, and where the helper runs (address and token); **[Tools]** test connection and last lookup.
 
 Not included: Genius' cover-based matching and alias learning, Genius line meanings, and animated album covers (an extension can only return lyrics, not artwork).
@@ -84,6 +87,9 @@ Every time: double-click `bridge/start-lyrics-bridge.cmd` and leave its window o
 
 Android and iPhone can't run the helper, so run it on another laptop that stays on, in **server mode**. Every request needs your secret token (`X-Bridge-Token`); without it the helper answers 401.
 
+<p align="center"><img src="assets/mobile-bridge.gif" width="720" alt="A phone getting lyrics through the helper on a second computer"></p>
+<p align="center"><sub>A phone using the helper on a second computer.</sub></p>
+
 1. On that computer install **Node.js 22 or newer**, and for the Spotify lookup do step 2 above there.
 2. On Windows, double-click `bridge/server/setup-server.cmd`: it makes the token, starts the helper at every logon, opens the firewall and prints what to enter. (Linux: `bridge/server/lyrics-bridge.service`.)
 3. On each device, in Lyrics Hub enter **[Helper] Helper address** and **Helper token**, then **[Tools] Test connection**.
@@ -107,7 +113,7 @@ Full steps (sleep settings, firewall, Linux, Cloudflare Tunnel, updating) are in
 
 ### Releasing
 
-After changing the extension: raise `version` in `extensions/lyrics-hub/manifest.json`, run `sh build.sh`, zip the new `dist/lyrics-hub_<version>.mornye-ext` (above), then run `node make-registry.mjs` from the repo root. It rewrites `registry.json` with the new version, the download link and the file's sha256 (Mornye refuses a download that doesn't match it), so commit `registry.json` together with the new package. Delete the old package from `dist/`.
+After changing the extension: raise `version` in `extensions/lyrics-hub/manifest.json`, run `sh build.sh`, zip the new `dist/lyrics-hub_<version>.mornye-ext` (above), then run `node make-registry.js` from the repo root. It rewrites `registry.json` with the new version, the download link and the file's sha256 (Mornye refuses a download that doesn't match it), so commit `registry.json` together with the new package. Delete the old package from `dist/`.
 
 ## Credits and terms
 

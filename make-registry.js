@@ -1,7 +1,7 @@
 // Rewrites registry.json, the list Mornye reads to install and update Lyrics Hub from its Repo tab.
 // Run it after every new package is built (see README, "Releasing"):
 //
-//   node make-registry.mjs
+//   node make-registry.js
 //
 // It takes the version from extensions/lyrics-hub/manifest.json, finds dist/lyrics-hub_<version>.mornye-ext,
 // works out the file's sha256 (Mornye refuses a download that doesn't match it) and points download_url at that file on the main branch.

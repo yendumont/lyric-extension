@@ -1,7 +1,7 @@
 # Changelog
 
 ## Repo
-- Added `registry.json` and `make-registry.mjs`: add this repo in Mornye's **Repo** tab to install and update Lyrics Hub.
+- Added `registry.json` and `make-registry.js`: add this repo in Mornye's **Repo** tab to install and update Lyrics Hub.
 
 ## lyrics-hub 1.3.1
 - Packages are now named `.mornye-ext`.
