@@ -3,6 +3,18 @@
 ## Repo
 - Added `registry.json` and `make-registry.js`: add this repo in Mornye's **Repo** tab to install and update Lyrics Hub.
 
+## lyrics-hub 1.4.1
+- Word-timed translation: Gemini now sees each sung word's length and the pauses between words, and is told to use the whole song as context.
+- Alignment runs at temperature 0, so the same song pairs the same way each time.
+- Lines whose pairing looks wrong are asked again once with a hint. If they still look wrong, the chunks are laid over the sung words by text length (approximate but in step) instead of dropping to a plain line.
+
+## lyrics-hub 1.4.0
+- Word-timed translation is now much closer to the sung timing: Gemini says which sung words each translated chunk covers (a range, not one word), and the chunk takes the real start of the first and the real end of the last of them. It no longer holds through pauses or long notes.
+- When several chunks share one sung word, that word's time is split between them by text length instead of equally.
+- Smaller chunks are asked for (about one per sung word).
+- If a line's pairing looks wrong (most sung words unaccounted for, or too many chunks squeezed onto one word), that line shows a plain translated line instead of wrong timing.
+- Cached translations from before are not reused (they have the old pairing); the first play of a song asks Gemini again.
+
 ## lyrics-hub 1.3.1
 - Packages are now named `.mornye-ext`.
 - Removed the separate Spicy Lyrics, Spicy Lyrics (Desktop) and Unison extensions and the old `spotify-bridge`: Lyrics Hub and `lyrics-bridge` replace them.

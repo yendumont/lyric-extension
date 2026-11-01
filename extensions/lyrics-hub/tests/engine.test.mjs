@@ -132,7 +132,7 @@ test("translation is cached: a second song fetch does not call Gemini again", ()
 
 test("translation, word mode: word-timed chunks in the app's pronunciation slot", () => {
   const lrc = "[00:01.00]<00:01.00>Hola <00:01.50>mundo<00:02.00>";
-  const g = gemini((b) => { assert.ok(b.contents[0].parts[0].text.includes("1:Hola 2:mundo")); return [[{ t: "Hello ", w: 1 }, { t: "world", w: 2 }]]; });
+  const g = gemini((b) => { assert.ok(b.contents[0].parts[0].text.includes("1:Hola(500ms) 2:mundo(500ms)")); return [[{ t: "Hello ", w: 1 }, { t: "world", w: 2 }]]; });
   const { ext } = load(cfg({ use_lrclib: true, translationMode: "word", geminiApiKey: "KEY" }), [lrclib(lrc), g]);
   const r = ext.fetchLyrics(...TRACK);
   const rows = decodeRows(r.lines[0].words);
@@ -141,6 +141,59 @@ test("translation, word mode: word-timed chunks in the app's pronunciation slot"
   const items = JSON.parse(rows[1].text);
   assert.deepEqual(items, [{ text: "Hello ", startTimeMs: 1000, endTimeMs: 1500 }, { text: "world", startTimeMs: 1500, endTimeMs: 2000 }]);
   assert.equal(items.map((i) => i.text).join(""), rows[0].text, "joined chunks equal the text, as the app requires");
+});
+
+test("translation, word mode: a chunk inherits the real span of the sung words it covers", () => {
+  // "Buenas noches mi amor": noches ends early (a pause), then amor is held
+  const lrc = "[00:01.00]<00:01.00>Buenas <00:01.40>noches<00:01.80> <00:03.00>mi <00:03.30>amor<00:05.00>";
+  const g = gemini(() => [[{ t: "Good ", from: 1, to: 1 }, { t: "night, ", from: 2, to: 2 }, { t: "my love", from: 3, to: 4 }]]);
+  const { ext } = load(cfg({ use_lrclib: true, translationMode: "word", geminiApiKey: "KEY" }), [lrclib(lrc), g]);
+  const items = JSON.parse(decodeRows(ext.fetchLyrics(...TRACK).lines[0].words)[1].text);
+  assert.deepEqual(items.map((i) => [i.startTimeMs, i.endTimeMs]), [[1000, 1400], [1400, 1800], [3000, 5000]]);
+  assert.equal(items[2].text, "my love");
+});
+
+test("translation, word mode: several chunks on one sung word share its time by length", () => {
+  const lrc = "[00:01.00]<00:01.00>Hola<00:02.00> <00:02.00>amigo<00:03.00>";
+  const g = gemini(() => [[{ t: "Hello ", from: 1, to: 1 }, { t: "my dear ", from: 1, to: 1 }, { t: "friend", from: 2, to: 2 }]]);
+  const { ext } = load(cfg({ use_lrclib: true, translationMode: "word", geminiApiKey: "KEY" }), [lrclib(lrc), g]);
+  const items = JSON.parse(decodeRows(ext.fetchLyrics(...TRACK).lines[0].words)[1].text);
+  assert.equal(items[0].startTimeMs, 1000); assert.equal(items[1].endTimeMs, 2000);
+  assert.equal(items[0].endTimeMs, items[1].startTimeMs);
+  assert.ok(items[0].endTimeMs > 1000 && items[0].endTimeMs < 2000);
+  assert.deepEqual([items[2].startTimeMs, items[2].endTimeMs], [2000, 3000]);
+});
+
+test("translation, word mode: a badly paired line is asked again with a hint, and the better answer is used", () => {
+  const lrc = "[00:01.00]<00:01.00>uno <00:02.00>dos <00:03.00>tres <00:04.00>cuatro<00:05.00>";
+  const bad = [{ t: "one ", from: 1, to: 1 }, { t: "two ", from: 1, to: 1 }, { t: "three ", from: 1, to: 1 }, { t: "four ", from: 1, to: 1 }, { t: "!", from: 1, to: 1 }];
+  const good = [{ t: "one ", from: 1, to: 1 }, { t: "two ", from: 2, to: 2 }, { t: "three ", from: 3, to: 3 }, { t: "four", from: 4, to: 4 }];
+  let asked = 0, hinted = false;
+  const g = gemini((b) => { asked++; const t = b.contents[0].parts[0].text; if (/first attempt paired/.test(t)) hinted = true; return [asked === 1 ? bad : good]; });
+  const { ext } = load(cfg({ use_lrclib: true, translationMode: "word", geminiApiKey: "KEY" }), [lrclib(lrc), g]);
+  const items = JSON.parse(decodeRows(ext.fetchLyrics(...TRACK).lines[0].words)[1].text);
+  assert.equal(asked, 2); assert.ok(hinted);
+  assert.deepEqual(items.map((i) => i.startTimeMs), [1000, 2000, 3000, 4000]);
+});
+
+test("translation, word mode: a pairing that stays bad is spread over the sung words by text length", () => {
+  const lrc = "[00:01.00]<00:01.00>uno <00:02.00>dos <00:03.00>tres <00:04.00>cuatro<00:05.00>";
+  const bad = [{ t: "one ", from: 1, to: 1 }, { t: "two ", from: 1, to: 1 }, { t: "three ", from: 1, to: 1 }, { t: "four ", from: 1, to: 1 }, { t: "!", from: 1, to: 1 }];
+  const { ext } = load(cfg({ use_lrclib: true, translationMode: "word", geminiApiKey: "KEY" }), [lrclib(lrc), gemini(() => [bad])]);
+  const items = JSON.parse(decodeRows(ext.fetchLyrics(...TRACK).lines[0].words)[1].text);
+  assert.equal(items.length, 5);
+  for (let i = 1; i < items.length; i++) assert.ok(items[i].startTimeMs >= items[i - 1].startTimeMs);
+  assert.ok(items[0].startTimeMs === 1000 && items[4].endTimeMs <= 5000 && items[4].startTimeMs >= 4000, JSON.stringify(items));
+  assert.equal(items.map((i) => i.text).join(""), "one two three four !");
+});
+
+test("translation, word mode: ranges are kept in order and inside the line", () => {
+  const lrc = "[00:01.00]<00:01.00>a <00:02.00>b<00:03.00>";
+  const g = gemini(() => [[{ t: "x ", from: 2, to: 9 }, { t: "y", from: 1, to: 1 }]]);
+  const { ext } = load(cfg({ use_lrclib: true, translationMode: "word", geminiApiKey: "KEY" }), [lrclib(lrc), g]);
+  const items = JSON.parse(decodeRows(ext.fetchLyrics(...TRACK).lines[0].words)[1].text);
+  for (let i = 1; i < items.length; i++) assert.ok(items[i].startTimeMs >= items[i - 1].startTimeMs);
+  for (const it of items) assert.ok(it.endTimeMs >= it.startTimeMs && it.endTimeMs <= 3000);
 });
 
 test("translation: a Gemini failure never loses the lyrics", () => {

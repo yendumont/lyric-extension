@@ -2433,26 +2433,32 @@ function plainPrompt(lines, language) {
   ].join("\n");
 }
 
-function syncedPrompt(lines, language) {
+function syncedPrompt(lines, language, retry) {
   var numbered = [];
   for (var i = 0; i < lines.length; i++) {
     var parts = [];
-    for (var n = 0; n < lines[i].length; n++) parts.push((n + 1) + ":" + lines[i][n]);
+    for (var n = 0; n < lines[i].length; n++) {
+      var sw_ = lines[i][n];
+      // Each sung word with how long it is held; a long gap before it is marked, so pauses and held notes are visible.
+      parts.push((sw_.gap >= 500 ? "[pause " + sw_.gap + "ms] " : "") + (n + 1) + ":" + sw_.w + "(" + sw_.ms + "ms)");
+    }
     numbered.push((i + 1) + ". " + parts.join(" "));
   }
   return [
     "You translate song lyrics into " + language + ", lined up with the words as they are sung.",
-    "Each of the " + lines.length + " numbered lines is given as its sung words, each tagged \"number:word\". Translate each line, keeping the meaning, tone and slang; do not censor or soften anything; do not merge or split lines.",
-    "Give each line's translation as consecutive chunks in reading order (a word or short phrase each). For every chunk, \"w\" is the number of the sung word it matches best. Within a line \"w\" never decreases; if the word order differs, pick the nearest sung word that keeps it that way. The chunks joined exactly make the translated line, so keep the spaces inside the chunks (at the end of each chunk but the last).",
+    "Each of the " + lines.length + " numbered lines is given as its sung words, each tagged \"number:word(duration)\", with long pauses marked. Use the whole song as context so each line is translated the way it is meant, and use the durations to place phrases: a long word is held, a pause separates phrases. Translate each line, keeping the meaning, tone and slang; do not censor or soften anything; do not merge or split lines.",
+    "Give each line's translation as consecutive chunks in reading order, as small as the language allows: about one chunk per sung word, a short phrase when several sung words become one. Never make one chunk cover a whole line unless the line is one or two words.",
+    "For every chunk give \"from\" and \"to\": the numbers of the first and last sung word the chunk expresses (from <= to, inclusive). Chunks stay in order: a chunk's \"from\" is never lower than the previous chunk's \"from\", and its \"to\" is never lower than the previous \"to\". Neighbouring chunks may share a sung word only when that one word is translated by several chunks. If the word order differs between the languages, pick the ranges that keep the order. The chunks joined exactly make the translated line, so keep the spaces inside the chunks (at the end of each chunk but the last).",
     "If a line is already in " + language + " (even with slang, dialect or odd spelling), or is only sounds (ooh, yeah, la la), return an empty array [] for it. Never reword, correct or paraphrase a line that is already in " + language + ".",
-    "Reply with a JSON array of exactly " + lines.length + " arrays of {\"t\": chunk, \"w\": number}, in the same order.",
+    retry ? "A first attempt paired some lines badly (many chunks on one word, or sung words left out). Spread every line's chunks across all of its sung words, in order, so every sung word is covered by some chunk." : "",
+    "Reply with a JSON array of exactly " + lines.length + " arrays of {\"t\": chunk, \"from\": number, \"to\": number}, in the same order.",
     "",
     numbered.join("\n")
   ].join("\n");
 }
 
 var PLAIN_SCHEMA = { type: "ARRAY", items: { type: "STRING" } };
-var SYNCED_SCHEMA = { type: "ARRAY", items: { type: "ARRAY", items: { type: "OBJECT", properties: { t: { type: "STRING" }, w: { type: "INTEGER" } }, required: ["t", "w"] } } };
+var SYNCED_SCHEMA = { type: "ARRAY", items: { type: "ARRAY", items: { type: "OBJECT", properties: { t: { type: "STRING" }, from: { type: "INTEGER" }, to: { type: "INTEGER" } }, required: ["t", "from", "to"] } } };
 
 function askGemini(prompt, schema) {
   var key = str("geminiApiKey");
@@ -2461,7 +2467,7 @@ function askGemini(prompt, schema) {
   for (var i = 0; i < GEMINI_SAFETY.length; i++) safety.push({ category: GEMINI_SAFETY[i], threshold: "BLOCK_NONE" });
   var body = {
     contents: [{ role: "user", parts: [{ text: prompt }] }],
-    generationConfig: { temperature: 0.3, responseMimeType: "application/json", responseSchema: schema },
+    generationConfig: { temperature: schema === SYNCED_SCHEMA ? 0 : 0.3, responseMimeType: "application/json", responseSchema: schema },
     safetySettings: safety
   };
   var resp = http.post("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent",
@@ -2505,23 +2511,103 @@ function sameLine(a, b) {
   return prev[y.length] <= Math.max(x.length, y.length) * 0.15;
 }
 
+// Gemini's chunks as { t, from, to } (sung word numbers, 1-based, inclusive), kept in order and inside the line.
+// An answer that only has "w" (one word per chunk) still works.
 function cleanChunks(chunks, count) {
   var out = [];
-  var last = 1;
+  var lastFrom = 1, lastTo = 1;
   for (var i = 0; i < (chunks || []).length; i++) {
     var c = chunks[i];
     if (!c || typeof c.t !== "string" || c.t === "") continue;
-    var w = Math.min(count, Math.max(last, Math.round(Number(c.w)) || last));
-    out.push({ t: c.t, w: w });
-    last = w;
+    var from = Math.round(Number(c.from !== undefined ? c.from : c.w)) || lastFrom;
+    var to = Math.round(Number(c.to !== undefined ? c.to : from)) || from;
+    from = Math.min(count, Math.max(lastFrom, from));
+    to = Math.min(count, Math.max(lastTo, from, to));
+    out.push({ t: c.t, from: from, to: to });
+    lastFrom = from;
+    lastTo = to;
   }
   return out;
 }
 
+// A pairing that cannot be trusted, spread by text instead: the chunks keep their order and each gets the sung words that sit at
+// the same relative position (by letters) in the line. Always usable, but only approximate.
+function spreadChunks(chunks, sw) {
+  var total = 0, i;
+  for (i = 0; i < sw.length; i++) total += Math.max(1, sw[i].text.replace(/\s+/g, "").length);
+  var cum = [0];
+  for (i = 0; i < sw.length; i++) cum[i + 1] = cum[i] + Math.max(1, sw[i].text.replace(/\s+/g, "").length);
+  var len = 0, sum = 0;
+  for (i = 0; i < chunks.length; i++) sum += Math.max(1, chunks[i].t.replace(/\s+/g, "").length);
+  var out = [], at = 0;
+  for (i = 0; i < chunks.length; i++) {
+    var w1 = Math.max(1, chunks[i].t.replace(/\s+/g, "").length);
+    var a = at / sum * total, b = (at + w1) / sum * total;
+    at += w1;
+    var from = 1, to = sw.length, k;
+    for (k = 0; k < sw.length; k++) if (cum[k + 1] > a + 0.0001) { from = k + 1; break; }
+    for (k = sw.length - 1; k >= 0; k--) if (cum[k] < b - 0.0001) { to = k + 1; break; }
+    out.push({ t: chunks[i].t, from: from, to: Math.max(from, to) });
+  }
+  return out;
+}
+
+// Times for the chunks from the real timing of the sung words they cover: a chunk starts when its first sung word starts and
+// ends when its last one ends. Where neighbouring chunks share sung words, that stretch is split between them by text length.
+// `sw` is wordsOf(line). Returns [{ text, startTimeMs, endTimeMs }], or null when the pairing looks wrong (too many chunks
+// on one word, or most sung words unaccounted for), so the caller can fall back to a plain translated line.
+function chunkTimings(chunks, sw, lineEnd) {
+  if (!chunks.length || !sw.length) return null;
+  var n = chunks.length, i;
+  var uses = {};
+  for (i = 0; i < n; i++) {
+    for (var u = chunks[i].from; u <= chunks[i].to; u++) uses[u] = (uses[u] || 0) + 1;
+  }
+  var covered = 0, w;
+  for (w = 1; w <= sw.length; w++) {
+    if (uses[w] > 4) return null;
+    if (uses[w]) covered++;
+  }
+  if (sw.length >= 3 && covered < Math.ceil(sw.length * 0.5)) return null;
+  var start = [], end = [];
+  for (i = 0; i < n; i++) {
+    var first = sw[chunks[i].from - 1], last = sw[chunks[i].to - 1];
+    start[i] = first.start;
+    end[i] = last.end > last.start ? last.end : (chunks[i].to < sw.length ? sw[chunks[i].to].start : lineEnd);
+    if (end[i] < start[i]) end[i] = start[i];
+  }
+  // Group chunks whose stretches overlap and share the stretch out by text length.
+  var g = 0;
+  while (g < n) {
+    var h = g, groupEnd = end[g];
+    while (h + 1 < n && start[h + 1] < groupEnd) { h++; if (end[h] > groupEnd) groupEnd = end[h]; }
+    if (h > g) {
+      var from = start[g], weightSum = 0, k;
+      for (k = g; k <= h; k++) weightSum += Math.max(1, chunks[k].t.replace(/\s+/g, "").length);
+      var at = from;
+      for (k = g; k <= h; k++) {
+        start[k] = Math.round(at);
+        at += (groupEnd - from) * Math.max(1, chunks[k].t.replace(/\s+/g, "").length) / weightSum;
+        end[k] = k === h ? groupEnd : Math.round(at);
+      }
+    }
+    g = h + 1;
+  }
+  var items = [];
+  for (i = 0; i < n; i++) {
+    if (i > 0 && start[i] < items[i - 1].startTimeMs) start[i] = items[i - 1].startTimeMs;
+    if (end[i] < start[i]) end[i] = start[i];
+    items.push({ text: chunks[i].t, startTimeMs: Math.round(start[i]), endTimeMs: Math.round(end[i]) });
+  }
+  items[0].text = items[0].text.replace(/^\s+/, "");
+  items[n - 1].text = items[n - 1].text.replace(/\s+$/, "");
+  return items;
+}
+
 // Translations for `items`: [string] (line mode) or [[word, ...]] (word mode), one result per item. Cached for a while.
-function translateAll(items, language, synced) {
+function translateAll(items, language, synced, retry) {
   var model = str("geminiModel", "gemini-3.5-flash-lite");
-  var key = "tr1:" + hashOf(language + "|" + model + "|" + (synced ? "w" : "l") + "|" + JSON.stringify(items));
+  var key = "tr2:" + hashOf(language + "|" + model + "|" + (synced ? (retry ? "r" : "w") : "l") + "|" + JSON.stringify(items));
   try {
     var cached = storage.get(key);
     if (cached) {
@@ -2532,7 +2618,7 @@ function translateAll(items, language, synced) {
   var out = [];
   for (var i = 0; i < items.length; i += TR_CHUNK) {
     var part = items.slice(i, i + TR_CHUNK);
-    var answer = askGemini(synced ? syncedPrompt(part, language) : plainPrompt(part, language), synced ? SYNCED_SCHEMA : PLAIN_SCHEMA);
+    var answer = askGemini(synced ? syncedPrompt(part, language, retry) : plainPrompt(part, language), synced ? SYNCED_SCHEMA : PLAIN_SCHEMA);
     if (!answer || answer.length !== part.length) throw new Error("Gemini's answer did not match the lyrics line for line");
     for (var k = 0; k < answer.length; k++) {
       if (synced) {
@@ -2567,7 +2653,9 @@ function addTranslations(lines, mode) {
     var w = mode === "word" ? wordsOf(lines[i]) : null;
     if (mode === "word") {
       if (!w.length) continue;
-      sung.push(w.map(function (x) { return x.text; }));
+      sung.push(w.map(function (x, q) {
+        return { w: x.text, ms: Math.max(0, Math.round((x.end || x.start) - x.start)), gap: q ? Math.max(0, Math.round(x.start - (w[q - 1].end || w[q - 1].start))) : 0 };
+      }));
     }
     idx.push(i);
     texts.push(text);
@@ -2575,6 +2663,26 @@ function addTranslations(lines, mode) {
   if (!idx.length) return 0;
   var result = translateAll(mode === "word" ? sung : texts, language, mode === "word");
   var added = 0;
+  if (mode === "word") {
+    // Lines whose pairing looks wrong are asked about once more, with a hint; what still fails is spread by text below.
+    var bad = [], badItems = [];
+    for (var b0 = 0; b0 < idx.length; b0++) {
+      var swb = wordsOf(lines[idx[b0]]);
+      if (result[b0] && result[b0].length && swb.length && !chunkTimings(result[b0], swb, swb[swb.length - 1].end || lines[idx[b0]].endTimeMs)) {
+        bad.push(b0);
+        badItems.push(sung[b0]);
+      }
+    }
+    if (bad.length && elapsed() < 20000) {
+      try {
+        var again = translateAll(badItems, language, true, true);
+        for (var r0 = 0; r0 < bad.length; r0++) if (again[r0] && again[r0].length) result[bad[r0]] = again[r0];
+        record("translation: " + bad.length + " badly paired lines asked again");
+      } catch (e3) {
+        record("translation retry failed: " + String(e3).slice(0, 120));
+      }
+    }
+  }
   for (var n = 0; n < idx.length; n++) {
     var line = lines[idx[n]];
     if (mode === "word") {
@@ -2585,29 +2693,16 @@ function addTranslations(lines, mode) {
       if (sameLine(joined, texts[n])) continue;
       var sw = wordsOf(line);
       var lineEnd = sw[sw.length - 1].end || line.endTimeMs;
-      var startOf = function (ch) { return sw[Math.min(sw.length, Math.max(1, ch.w)) - 1].start; };
-      var items = [];
-      var k = 0;
-      while (k < chunks.length) {
-        var m = k;
-        while (m + 1 < chunks.length && chunks[m + 1].w === chunks[k].w) m++;
-        var from = startOf(chunks[k]);
-        var to = m + 1 < chunks.length ? startOf(chunks[m + 1]) : lineEnd;
-        var each = (to - from) / (m - k + 1);
-        for (var q = k; q <= m; q++) {
-          items.push({ text: chunks[q].t, startTimeMs: Math.round(from + each * (q - k)), endTimeMs: Math.round(from + each * (q - k + 1)) });
-        }
-        k = m + 1;
+      var items = chunkTimings(chunks, sw, lineEnd);
+      // Still not trustworthy after the second try: lay the chunks over the sung words by text length (approximate, but in step).
+      if (!items) items = chunkTimings(spreadChunks(chunks, sw), sw, lineEnd);
+      if (!items) {
+        line.words += supplementRow("x-translation", line.startTimeMs, joined.replace(/\s+/g, " ").trim());
+        added++;
+        continue;
       }
-      // The app wants the words in order and its text to equal the joined chunks, trimmed at both ends.
-      items[0].text = items[0].text.replace(/^\s+/, "");
-      items[items.length - 1].text = items[items.length - 1].text.replace(/\s+$/, "");
       var whole = "";
-      for (var z = 0; z < items.length; z++) {
-        if (items[z].endTimeMs < items[z].startTimeMs) items[z].endTimeMs = items[z].startTimeMs;
-        if (z > 0 && items[z].startTimeMs < items[z - 1].startTimeMs) items[z].startTimeMs = items[z - 1].startTimeMs;
-        whole += items[z].text;
-      }
+      for (var z = 0; z < items.length; z++) whole += items[z].text;
       line.words += supplementRow("x-romaji", line.startTimeMs, whole);
       line.words += supplementRow("x-romaji-words", line.startTimeMs, JSON.stringify(items));
       added++;
