@@ -9,7 +9,7 @@ translation and 15 lyric sources. A small optional **helper** (`lyrics-bridge`) 
 | File or folder | What it is |
 |---|---|
 | [`registry.json`](registry.json) | The list Mornye's **Repo** tab reads, so Lyrics Hub installs and updates from this repo (see [Install](#install)) |
-| [`dist/lyrics-hub_1.3.1.mornye-ext`](dist/) | **The extension itself.** You can also install this file by hand |
+| [`dist/lyrics-hub_1.4.1.mornye-ext`](dist/) | **The extension itself.** You can also install this file by hand |
 | [`dist/lyrics-bridge.zip`](dist/) | The helper, ready to unzip and run (the same files as `bridge/`). Optional. |
 | `extensions/lyrics-hub/` | Source of the extension (`src/*.js`, `manifest.json`, the built `index.js`, `tests/`) |
 | `bridge/` | Source of the helper. Every file in it is explained in [`bridge/README.txt`](bridge/README.txt) |
@@ -32,7 +32,7 @@ translation and 15 lyric sources. A small optional **helper** (`lyrics-bridge`) 
 2. Enter `https://github.com/yendumont/lyric-extension` and confirm. (Mornye reads `registry.json` from the repo. The direct link works too: `https://raw.githubusercontent.com/yendumont/lyric-extension/main/registry.json`.)
 3. Install **Lyrics Hub**.
 
-**Or by hand:** download `lyrics-hub_1.3.1.mornye-ext` from `dist/` and install it from the Extensions page.
+**Or by hand:** download `lyrics-hub_1.4.1.mornye-ext` from `dist/` and install it from the Extensions page.
 
 Then:
 
@@ -48,7 +48,7 @@ It asks the lyric sources the [Lyric Viewer](https://github.com/yendumont/lyric-
 - **Background vocals** as a small line under the main lyric, and **duets** (the second singer's lines are tagged `v2:` so Mornye shows them on the right). Both can be turned off.
 - **Timing offset** (in ms, negative = earlier) and a **Word-by-word timing** switch for comparing.
 - **Source order and switches.** Type your own order (names or ids, separated by commas or `>`); sources you leave out follow in the default order. With **prefer best sync** on it keeps looking until word timing turns up, off it uses the first source in your order that has synced lyrics.
-- **Translation.** With your own Gemini key, *line* adds a translation line under each lyric (`[x-translation]`, shown by Mornye as the translation). *word* splits the translation into chunks tied to the sung words and sends them as `[x-romaji]` + `[x-romaji-words]`, so Mornye shows them in its word-by-word "pronunciation" slot (use the lyrics language button). Mornye has no separate word-synced translation slot.
+- **Translation.** With your own Gemini key, *line* adds a translation line under each lyric (`[x-translation]`, shown by Mornye as the translation). *word* splits the translation into chunks tied to the sung words and sends them as `[x-romaji]` + `[x-romaji-words]`, so Mornye shows them in its word-by-word "pronunciation" slot (use the lyrics language button). Each chunk takes the real timing of the sung words it covers; lines that Gemini pairs badly are asked again once and then spread over the sung words by text length. Mornye has no separate word-synced translation slot.
 - **Diagnostics.** **[Tools] Last lookup** shows which sources were asked, in what order, and which one answered.
 
 <p align="center"><img src="assets/synced-lyrics.gif" width="720" alt="Word-by-word synced lyrics in Mornye"></p>
@@ -120,7 +120,7 @@ Full steps (sleep settings, firewall, Linux, Cloudflare Tunnel, updating) are in
 
   ```sh
   cd extensions/lyrics-hub
-  zip -X ../../dist/lyrics-hub_1.3.1.mornye-ext manifest.json index.js
+  zip -X ../../dist/lyrics-hub_1.4.1.mornye-ext manifest.json index.js
   ```
 - **Helper:** `cd bridge/tests && node --test bridge.test.mjs`. `dist/lyrics-bridge.zip` holds `lyrics-bridge.mjs`, `start-lyrics-bridge.cmd`, `README.txt` and `server/`.
 
