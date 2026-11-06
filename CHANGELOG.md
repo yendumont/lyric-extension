@@ -3,6 +3,9 @@
 ## Repo
 - Added `registry.json` and `make-registry.js`: add this repo in Mornye's **Repo** tab to install and update Lyrics Hub.
 
+## Helper (lyrics-bridge)
+- Genius: when Genius answers 403, the helper retries with other browser-like request headers and keeps the one that worked. Fixes "Genius found nothing" when Genius refused the helper's requests. Update by replacing `lyrics-bridge.mjs` (or the helper folder); the extension itself needs no update.
+
 ## lyrics-hub 1.4.1
 - Word-timed translation: Gemini now sees each sung word's length and the pauses between words, and is told to use the whole song as context.
 - Alignment runs at temperature 0, so the same song pairs the same way each time.
