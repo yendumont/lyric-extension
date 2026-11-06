@@ -429,6 +429,37 @@ function search(track, artist, durationSec) {
 // ---------- Genius and YouTube Music (what the Lyric Viewer's worker does) ----------
 const USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
+// ── Genius request identities ────────────────────────────────────────────────
+// Genius's bot protection answers some requests with 403. Genius's developers have said that
+// browser-like requests for the lyrics of songs real users ask for are fine, so on a 403 another
+// browser identity is tried, and the one that worked is kept for the next request.
+const GENIUS_PROFILES = [
+  (json) => ({
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+    Accept: json ? "application/json, text/plain, */*" : "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    "sec-ch-ua": '"Chromium";v="141", "Not?A_Brand";v="8", "Google Chrome";v="141"',
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": '"Windows"',
+    "Sec-Fetch-Dest": json ? "empty" : "document",
+    "Sec-Fetch-Mode": json ? "cors" : "navigate",
+    "Sec-Fetch-Site": json ? "same-origin" : "none",
+    ...(json ? { Referer: "https://genius.com/" } : { "Upgrade-Insecure-Requests": "1" }),
+  }),
+  (json) => ({
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:144.0) Gecko/20100101 Firefox/144.0",
+    Accept: json ? "application/json, text/plain, */*" : "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.5",
+    ...(json ? { Referer: "https://genius.com/" } : { "Upgrade-Insecure-Requests": "1" }),
+  }),
+  (json) => ({
+    "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1",
+    Accept: json ? "application/json" : "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+  }),
+  (json) => ({ "User-Agent": "Mozilla/5.0", Accept: json ? "application/json" : "*/*" }),
+];
+let geniusProfile = 0;
 const LYRICS_PATH = /^\/[\w\-.~%]{1,200}-lyrics$/;
 const VIDEO_ID = /^[\w-]{11}$/;
 const MAX_QUERY_LENGTH = 200;
@@ -522,12 +553,7 @@ export async function ytmLyrics(videoId) {
 // -- Genius --
 // Genius answers a first visit with a redirect to the same address that sets a cookie, so redirects are
 // followed by hand, carrying the cookies along, and never leave genius.com.
-async function geniusGet(target, wantsJson) {
-  const headers = {
-    "User-Agent": USER_AGENT,
-    "Accept-Language": "en-US,en;q=0.9",
-    Accept: wantsJson ? "application/json" : "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8",
-  };
+async function geniusHop(target, headers) {
   const cookies = new Map();
   let next = target;
   let res;
@@ -545,6 +571,20 @@ async function geniusGet(target, wantsJson) {
     const resolved = new URL(where, next);
     if (resolved.hostname !== "genius.com" && !resolved.hostname.endsWith(".genius.com")) break;
     next = resolved.href;
+  }
+  return res;
+}
+
+// On a 403 another browser identity is tried, and the one that worked is kept for the next request.
+async function geniusGet(target, wantsJson) {
+  let res;
+  for (let n = 0; n < GENIUS_PROFILES.length; n++) {
+    const p = (geniusProfile + n) % GENIUS_PROFILES.length;
+    res = await geniusHop(target, GENIUS_PROFILES[p](wantsJson));
+    if (res.status !== 403) {
+      geniusProfile = p;
+      break;
+    }
   }
   if (!res.ok) throw new Error(`genius responded ${res.status}`);
   return res;
