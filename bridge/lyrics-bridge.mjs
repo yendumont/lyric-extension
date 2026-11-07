@@ -24,6 +24,7 @@ import http from "node:http";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
+import { execFile } from "node:child_process";
 import { pathToFileURL } from "node:url";
 
 const VERSION = "2.2";
@@ -465,8 +466,33 @@ const VIDEO_ID = /^[\w-]{11}$/;
 const MAX_QUERY_LENGTH = 200;
 const UPSTREAM_TIMEOUT_MS = 12000;
 
+// Genius sometimes refuses Node's own connection (403) while a normal browser, or the curl that comes with
+// Windows 10/11, macOS and most Linux systems, is let through. When Node is refused, the same request is
+// made with curl (no extra install). Redirects and cookies stay inside genius.com.
+const CURL = process.platform === "win32" ? "curl.exe" : "curl";
+let curlMissing = false;
+function curlFetch(target, headers) {
+  return new Promise((resolve) => {
+    if (curlMissing || !/^https:\/\/genius\.com\//.test(target)) return resolve(null);
+    const args = ["-s", "--compressed", "-L", "--max-redirs", "5", "--proto", "=https", "--proto-redir", "=https",
+      "--max-time", String(Math.ceil(UPSTREAM_TIMEOUT_MS / 1000)), "--cookie", ""];
+    for (const [k, v] of Object.entries(headers)) args.push("-H", `${k}: ${v}`);
+    args.push("-w", "\n__CURL__%{http_code} %{url_effective}", target);
+    execFile(CURL, args, { maxBuffer: 20 * 1024 * 1024, windowsHide: true, encoding: "utf8" }, (err, out) => {
+      if (err && err.code === "ENOENT") { curlMissing = true; return resolve(null); }
+      const at = typeof out === "string" ? out.lastIndexOf("\n__CURL__") : -1;
+      if (at < 0) return resolve(null);
+      const [code, finalUrl] = out.slice(at + 9).trim().split(" ");
+      let host = "";
+      try { host = new URL(finalUrl).hostname; } catch { /* keep empty */ }
+      if (host !== "genius.com" && !host.endsWith(".genius.com")) return resolve(null);
+      resolve(new Response(out.slice(0, at), { status: Number(code) || 502 }));
+    });
+  });
+}
+
 // Tests swap this for a fake.
-export const upstream = { fetch: (...a) => globalThis.fetch(...a) };
+export const upstream = { fetch: (...a) => globalThis.fetch(...a), curl: curlFetch };
 
 const boundedInt = (value, min, max) => {
   if (value === null || !/^\d{1,3}$/.test(value)) return null;
@@ -585,6 +611,10 @@ async function geniusGet(target, wantsJson) {
       geniusProfile = p;
       break;
     }
+  }
+  if (res.status === 403 && upstream.curl) {
+    const viaCurl = await upstream.curl(target, GENIUS_PROFILES[0](wantsJson));
+    if (viaCurl && viaCurl.status !== 403) res = viaCurl;
   }
   if (!res.ok) throw new Error(`genius responded ${res.status}`);
   return res;
